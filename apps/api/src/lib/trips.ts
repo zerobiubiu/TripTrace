@@ -3,14 +3,9 @@
  * 约定：总里程（totalKm）是统计口径；分段里程（legs[].km）可以留空。
  */
 
-import type { TripRow } from "../../db/schema";
+import type { Leg, TripDto } from "@triptrace/contracts";
+import type { TripRow } from "../db/schema";
 import { HttpError } from "./http";
-
-export interface Leg {
-  from: string;
-  to: string;
-  km: number | null;
-}
 
 export interface TripInput {
   date: string;
@@ -20,23 +15,13 @@ export interface TripInput {
   note: string | null;
 }
 
-export interface TripDto {
-  id: string;
-  date: string;
-  nodes: string[];
-  legs: Leg[];
-  totalKm: number | null;
-  note: string | null;
-  source: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_NODES = 40;
 const MAX_NODE_CHARS = 32;
 const MAX_NOTE_CHARS = 300;
 const MAX_KM = 100_000;
+export type { Leg, TripDto } from "@triptrace/contracts";
+
 export type TripRecord = Pick<
   TripRow,
   "id" | "date" | "nodes" | "legs" | "totalKm" | "note" | "source" | "createdAt" | "updatedAt"

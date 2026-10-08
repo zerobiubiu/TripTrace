@@ -1,10 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "lib": ["es2022"],
+    "lib": ["es2022", "dom", "dom.iterable"],
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": [],
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "paths": {
+      "@triptrace/contracts": ["../../packages/contracts/src/index.ts"]
+    },
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
@@ -14,5 +18,5 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true
   },
-  "include": ["src/worker/**/*.ts", "src/db/**/*.ts", "worker-configuration.d.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

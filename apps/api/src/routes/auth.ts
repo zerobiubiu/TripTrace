@@ -2,6 +2,7 @@
 
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import type { AuthResponse, MeResponse, OkResponse } from "@triptrace/contracts";
 import {
   allowRateLimited,
   assertSignupCode,
@@ -36,15 +37,16 @@ authRoutes.get("/me", async (c) => {
     const current = getCookie(c, SESSION_COOKIE);
     if (current) setCookie(c, SESSION_COOKIE, current, sessionCookieOptions(c.req.raw));
   }
-  return c.json({
+  const payload: MeResponse = {
     user: session ? session.user : null,
     signupCodeRequired: Boolean(c.env.SIGNUP_CODE),
     version: c.env.APP_VERSION ?? "dev",
-  });
+  };
+  return c.json(payload);
 });
 
 authRoutes.post("/auth/register", async (c) => {
-  assertSameOrigin(c.req.raw);
+  assertSameOrigin(c.req.raw, c.env);
   const body = await readJsonBody<Record<string, unknown>>(c.req.raw);
 
   const allowed = await allowRateLimited(
@@ -92,11 +94,12 @@ authRoutes.post("/auth/register", async (c) => {
 
   const cookieValue = await createSession(db, c.env, c.req.raw, { id: userId, username, displayName });
   setCookie(c, SESSION_COOKIE, cookieValue, sessionCookieOptions(c.req.raw));
-  return c.json({ user: { id: userId, username, displayName } }, 201);
+  const payload: AuthResponse = { user: { id: userId, username, displayName } };
+  return c.json(payload, 201);
 });
 
 authRoutes.post("/auth/login", async (c) => {
-  assertSameOrigin(c.req.raw);
+  assertSameOrigin(c.req.raw, c.env);
   const body = await readJsonBody<Record<string, unknown>>(c.req.raw);
 
   const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
@@ -140,18 +143,20 @@ authRoutes.post("/auth/login", async (c) => {
     displayName: user.displayName,
   });
   setCookie(c, SESSION_COOKIE, cookieValue, sessionCookieOptions(c.req.raw));
-  return c.json({ user: { id: user.id, username: user.username, displayName: user.displayName } });
+  const payload: AuthResponse = { user: { id: user.id, username: user.username, displayName: user.displayName } };
+  return c.json(payload);
 });
 
 authRoutes.post("/auth/logout", async (c) => {
-  assertSameOrigin(c.req.raw);
+  assertSameOrigin(c.req.raw, c.env);
   await destroySession(c.get("db"), c.env, getCookie(c, SESSION_COOKIE) ?? null);
   deleteCookie(c, SESSION_COOKIE, { path: "/", secure: new URL(c.req.url).protocol === "https:" });
-  return c.json({ ok: true });
+  const payload: OkResponse = { ok: true };
+  return c.json(payload);
 });
 
 authRoutes.post("/auth/password", requireSession, refreshSessionCookie, async (c) => {
-  assertSameOrigin(c.req.raw);
+  assertSameOrigin(c.req.raw, c.env);
   const body = await readJsonBody<Record<string, unknown>>(c.req.raw);
 
   const current = typeof body.currentPassword === "string" ? body.currentPassword : "";
@@ -176,5 +181,6 @@ authRoutes.post("/auth/password", requireSession, refreshSessionCookie, async (c
   });
   await destroyOtherSessions(db, c.env, row.id, c.get("sessionId"));
 
-  return c.json({ ok: true });
+  const payload: OkResponse = { ok: true };
+  return c.json(payload);
 });

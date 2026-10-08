@@ -3,8 +3,8 @@
  */
 
 import { and, desc, eq, gte, lte, ne } from "drizzle-orm";
-import { sessions, trips, users } from "../../db/schema";
-import type { NewSession, NewTrip, NewUser, SessionRow, TripRow, UserRow } from "../../db/schema";
+import { sessions, trips, users } from "../db/schema";
+import type { NewSession, NewTrip, NewUser, SessionRow, TripRow, UserRow } from "../db/schema";
 import type { Db } from "./db";
 
 /** D1 单条语句最多 100 个绑定参数，trips 一行 10 列 → 每批 8 行。 */

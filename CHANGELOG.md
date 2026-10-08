@@ -1,7 +1,17 @@
 # 变更记录
 
-本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。项目版本以 `package.json` 为唯一事实来源，
-`wrangler.jsonc` 的 `vars.APP_VERSION` 由 `npm run check`（`bun run check`）门禁校验一致性。
+本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。项目版本以根 `package.json` 为唯一事实来源，
+`apps/api/wrangler.jsonc` 的 `vars.APP_VERSION` 由 `bun run check` 门禁校验一致性；前端版本由 Vite 注入。
+
+## 0.3.0
+
+前后端分离：拆成 bun workspaces 三包，部署改为 Pages（前端）+ Workers（后端路由），同一域名两个路径。
+
+- 工程结构：`apps/web`（React + Vite，构建到 `dist/`）、`apps/api`（Hono + Drizzle Worker，只提供 `/api/*`）、`packages/contracts`（只放类型的 API 契约，两端共用）。
+- 部署拓扑：`https://trips.zerobiubiu.top/` 由 Cloudflare Pages 托管（项目 `triptrace-web`），`/api/*` 由 Worker 路由交给 `triptrace`；同源设计，Cookie 鉴权与 CSRF 策略不变，无需 CORS；旧 `*.workers.dev` 地址保留（`/api` 可用，其它路径 302 跳前端）。
+- 本地开发：`bun run dev:api`（8787）+ `bun run dev:web`（5173，代理 `/api`）；跨源写操作白名单由 `apps/api/.dev.vars` 提供（不入库）。
+- 脚本与门禁：根脚本用 `bun --filter` 在包内执行，避免全局工具抢占；`bun run check` 覆盖 api/web/node 三份 tsconfig 与版本一致性。
+- 契约收敛：DTO 类型从 `packages/contracts` 引入（`import type`，零运行时耦合），API 路由与前端状态共用同一份定义。
 
 ## 0.2.0
 

@@ -1,38 +1,29 @@
 {
   "name": "triptrace",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "途迹 TripTrace —— 出差行程节点与里程的填报、建议与统计（Workers + Hono + Drizzle + React）",
+  "description": "途迹 TripTrace —— 出差行程节点与里程的填报、建议与统计（前端 Pages + 后端 Workers）",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "typecheck": "wrangler types --env-interface CloudflareBindings && tsc -p tsconfig.worker.json --noEmit && tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
-    "check": "bun run typecheck && bun scripts/check-version.mjs",
-    "build": "bun run check && vite build",
-    "preview": "bun run build && vite preview",
-    "deploy": "bun run build && wrangler deploy",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply triptrace-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply triptrace-db --remote"
+    "dev:api": "bun --filter @triptrace/api dev",
+    "dev:web": "bun --filter @triptrace/web dev",
+    "check": "bun --filter @triptrace/api types && node scripts/check-version.mjs && tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.node.json --noEmit",
+    "build:web": "bun --filter @triptrace/web build",
+    "deploy:api": "bun --filter @triptrace/api deploy",
+    "deploy:web": "bun --filter @triptrace/web deploy",
+    "db:generate": "bun --filter @triptrace/api db:generate",
+    "db:migrate:local": "bun --filter @triptrace/api db:migrate:local",
+    "db:migrate:remote": "bun --filter @triptrace/api db:migrate:remote"
   },
   "trustedDependencies": [
     "esbuild",
     "workerd"
   ],
-  "dependencies": {
-    "drizzle-orm": "^0.45.3",
-    "hono": "^4.13.13",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
-  },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.63.0",
-    "@types/node": "^26.6.4",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
-    "drizzle-kit": "^0.31.11",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.3"
+    "typescript": "^7.0.2"
   }
 }

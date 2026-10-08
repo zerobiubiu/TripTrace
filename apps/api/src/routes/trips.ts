@@ -1,6 +1,7 @@
 /** 行程接口：列表、新建、修改、删除、批量导入。挂在 /api 下，全部需要登录。 */
 
 import { Hono } from "hono";
+import type { BulkImportResponse, OkResponse, TripListResponse, TripResponse } from "@triptrace/contracts";
 import { authedHandlers, type AppEnv } from "../lib/context";
 import { assertSameOrigin, HttpError, readJsonBody } from "../lib/http";
 import * as store from "../lib/store";
@@ -17,19 +18,21 @@ export const tripRoutes = new Hono<AppEnv>();
 
 tripRoutes.get("/trips", ...authedHandlers, async (c) => {
   const rows = await store.listTrips(c.get("db"), c.get("user").id);
-  return c.json({ trips: rows.map(serializeTrip) });
+  const payload: TripListResponse = { trips: rows.map(serializeTrip) };
+  return c.json(payload);
 });
 
 tripRoutes.post("/trips", ...authedHandlers, async (c) => {
-  assertSameOrigin(c.req.raw);
+  assertSameOrigin(c.req.raw, c.env);
   const input = parseTripInput(await readJsonBody<unknown>(c.req.raw));
   const row = tripRowFromInput(input, { userId: c.get("user").id, source: "manual" });
   await store.insertTrip(c.get("db"), row);
-  return c.json({ trip: serializeTrip(row) }, 201);
+  const payload: TripResponse = { trip: serializeTrip(row) };
+  return c.json(payload, 201);
 });
 
 tripRoutes.put("/trips/:id", ...authedHandlers, async (c) => {
-  assertSameOrigin(c.req.raw);
+  assertSameOrigin(c.req.raw, c.env);
   const tripId = c.req.param("id");
   const userId = c.get("user").id;
   const db = c.get("db");
@@ -48,7 +51,7 @@ tripRoutes.put("/trips/:id", ...authedHandlers, async (c) => {
     updatedAt,
   });
 
-  return c.json({
+  const payload: TripResponse = {
     trip: serializeTrip({
       ...existing,
       date: input.date,
@@ -58,11 +61,12 @@ tripRoutes.put("/trips/:id", ...authedHandlers, async (c) => {
       note: input.note,
       updatedAt,
     }),
-  });
+  };
+  return c.json(payload);
 });
 
 tripRoutes.delete("/trips/:id", ...authedHandlers, async (c) => {
-  assertSameOrigin(c.req.raw);
+  assertSameOrigin(c.req.raw, c.env);
   const tripId = c.req.param("id");
   const userId = c.get("user").id;
   const db = c.get("db");
@@ -71,11 +75,12 @@ tripRoutes.delete("/trips/:id", ...authedHandlers, async (c) => {
   if (!existing) throw new HttpError(404, "trip_not_found", "行程不存在或无权删除");
 
   await store.deleteTrip(db, userId, tripId);
-  return c.json({ ok: true });
+  const payload: OkResponse = { ok: true };
+  return c.json(payload);
 });
 
 tripRoutes.post("/trips/bulk", ...authedHandlers, async (c) => {
-  assertSameOrigin(c.req.raw);
+  assertSameOrigin(c.req.raw, c.env);
   const userId = c.get("user").id;
   const db = c.get("db");
 
@@ -84,13 +89,19 @@ tripRoutes.post("/trips/bulk", ...authedHandlers, async (c) => {
   if (body.trips.length > MAX_BULK_TRIPS) {
     throw new HttpError(400, "invalid_import", `单次最多导入 ${MAX_BULK_TRIPS} 条行程`);
   }
-  if (body.trips.length === 0) return c.json({ created: 0, skipped: 0 });
+  if (body.trips.length === 0) {
+    const empty: BulkImportResponse = { created: 0, skipped: 0 };
+    return c.json(empty);
+  }
 
   const inputs: TripInput[] = body.trips.map((entry) => parseTripInput(entry));
   const dates = inputs.map((input) => input.date).sort();
   const firstDate = dates[0];
   const lastDate = dates[dates.length - 1];
-  if (!firstDate || !lastDate) return c.json({ created: 0, skipped: 0 });
+  if (!firstDate || !lastDate) {
+    const empty: BulkImportResponse = { created: 0, skipped: 0 };
+    return c.json(empty);
+  }
 
   const existing = await store.listTripsInRange(db, userId, firstDate, lastDate);
   const seen = new Set(
@@ -110,5 +121,6 @@ tripRoutes.post("/trips/bulk", ...authedHandlers, async (c) => {
   }
 
   await store.insertTrips(db, rows);
-  return c.json({ created: rows.length, skipped });
+  const payload: BulkImportResponse = { created: rows.length, skipped };
+  return c.json(payload);
 });

@@ -30,9 +30,12 @@ export function isSecureRequest(request: Request): boolean {
 
 /**
  * 写操作的 CSRF 防护：SameSite=Lax 之外的第二道闸。
- * 浏览器请求带 Sec-Fetch-Site / Origin 时严格校验；非浏览器客户端（无 Origin）放行。
+ * 浏览器请求带 Sec-Fetch-Site / Origin 时严格校验：
+ * - 默认要求 Origin 与请求主机一致（生产同源部署）；
+ * - `ALLOWED_ORIGINS`（逗号分隔，本地开发或前后端分域时用）里的来源额外放行；
+ * - 非浏览器客户端（无 Origin）放行。
  */
-export function assertSameOrigin(request: Request): void {
+export function assertSameOrigin(request: Request, env: { ALLOWED_ORIGINS?: string }): void {
   if (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS") return;
 
   if (request.headers.get("sec-fetch-site") === "cross-site") {
@@ -42,15 +45,20 @@ export function assertSameOrigin(request: Request): void {
   const origin = request.headers.get("origin");
   if (!origin) return;
 
-  let originHost: string;
+  let originUrl: URL;
   try {
-    originHost = new URL(origin).host;
+    originUrl = new URL(origin);
   } catch {
     throw new HttpError(403, "bad_origin", "Origin 头无效");
   }
-  if (originHost !== new URL(request.url).host) {
-    throw new HttpError(403, "bad_origin", "请求来源与站点不一致");
-  }
+
+  const allowed = (env.ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (allowed.includes(origin) || originUrl.host === new URL(request.url).host) return;
+
+  throw new HttpError(403, "bad_origin", "请求来源与站点不一致");
 }
 
 export async function readJsonBody<T>(request: Request, maxBytes = 512 * 1024): Promise<T> {

@@ -8,6 +8,7 @@ import { createEntryForm, formToPayload, tripToForm, type EntryForm } from "./li
 import { formatDateLabel, formatKm, todayIso } from "./lib/format";
 import { buildIndex } from "./lib/suggest";
 import { removeTrip, upsertTrip } from "./lib/tripList";
+import { appVersion } from "./lib/version";
 import type { MeResponse, TabKey, ToastMessage, Trip, TripPayload, User } from "./types";
 import { AuthScreen } from "./views/AuthScreen";
 import { EntryView } from "./views/EntryView";
@@ -177,7 +178,7 @@ export function App() {
       <>
         <AuthScreen
           signupCodeRequired={me.signupCodeRequired}
-          version={me.version}
+          version={appVersion}
           onAuthenticated={handleAuthenticated}
         />
         <Toasts toasts={toasts} />
@@ -234,7 +235,7 @@ export function App() {
           {tab === "stats" ? <StatsView trips={trips} /> : null}
           {tab === "import" ? <ImportView onImport={handleImport} notify={notify} /> : null}
           <p className="footer">
-            途迹 TripTrace v{me.version} · 数据存于你的 Cloudflare 账号（Workers + D1 + KV）
+            途迹 TripTrace v{appVersion} · 数据存于你的 Cloudflare 账号（Workers + D1 + KV）
           </p>
         </main>
       </div>

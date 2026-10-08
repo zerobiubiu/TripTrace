@@ -1,0 +1,13 @@
+{
+  "name": "@triptrace/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "前后端共享的 API 契约类型（纯类型，无运行时代码）",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts"
+    }
+  }
+}
