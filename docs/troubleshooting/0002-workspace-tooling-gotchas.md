@@ -97,4 +97,4 @@ ALLOWED_ORIGINS="http://127.0.0.1:5173,http://localhost:5173"
 
 生产环境同源（0.4.0 起为单 Worker：静态资源 + `/api/*`，见 [changes/0005](../changes/0005-single-worker-topology.md)），不需要这个变量；`ALLOWED_ORIGINS` 仅用于不走 Vite 代理的跨源场景。
 
-> 与时序有关的过时内容：Pages 项目 `triptrace-web` 已在 0.4.0 停用且不再持有自定义域，本文中与它相关的 DNS/域名步骤只在回溯 0.3.0 历史时还有意义。
+> 与时序有关的过时内容：Pages 项目 `triptrace-web` 已在 0.4.0 停用并删除，本文中与它相关的 DNS/域名步骤只在回溯 0.3.0 历史时还有意义。

@@ -123,7 +123,7 @@ CSP 由 `apps/web/public/_headers` 下发（`default-src 'none'`；`script-src '
 | --- | --- | --- |
 | 站点 + 接口（Worker） | `triptrace` | 自定义域 https://trips.zerobiubiu.top（静态资源 + `/api/*`）；旧地址 https://triptrace.1731865922.workers.dev |
 | 前端构建产物 | `apps/web/dist` | 由 `wrangler deploy` 随 Worker 的 `assets` 上传（不单独部署） |
-| 已停用（Pages） | `triptrace-web` | 0.4.0 起不再部署，保留历史，不再有自定义域 |
+| 已删除（Pages） | `triptrace-web` | 0.4.0 起停用并于同日删除，自定义域与历史部署一并清除 |
 | D1 | `triptrace-db` | `52a9d143-2cb4-4888-b158-4dfb36adb6c4` |
 | KV | `triptrace-sessions` | `aa2cda7e62da49c7bb8449ec6150d888` |
 | 账号 / Zone | 1731865922@qq.com's Account | `ece132b98267492c057accef6a60fe05` / `zerobiubiu.top`（`68a3e4dbefea64cdd5a83d4671c2ca96`） |

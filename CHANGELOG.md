@@ -8,7 +8,7 @@
 部署拓扑回到**单 Worker**：0.3.0 的「Pages 前端 + Worker 路由」合并为一个部署物——静态资源由 Worker 的 `assets` 绑定托管，`/api`、`/api/*` 交给 Hono，一次 `wrangler deploy` 完成前后端发布。API 契约与数据模型不变。
 
 - `apps/api/wrangler.jsonc`：增加 `assets`（`directory: ../web/dist`、SPA 回退、`run_worker_first: ["/api","/api/*"]`）与自定义域 `trips.zerobiubiu.top`；移除只服务于旧地址 302 的 `WEB_APP_URL` 变量与对应代码。
-- 脚本收敛：根 `bun run deploy` = 构建前端 + 部署 Worker；删除 `deploy:web`（Pages 上传）与 `apps/web` 的 `deploy` 脚本；Pages 项目 `triptrace-web` 停用（自定义域已解除，不再更新）。
+- 脚本收敛：根 `bun run deploy` = 构建前端 + 部署 Worker；删除 `deploy:web`（Pages 上传）与 `apps/web` 的 `deploy` 脚本；Pages 项目 `triptrace-web` 解除自定义域后删除（历史部署一并清除），本站不再使用 Pages。
 - 旧 `*.workers.dev` 地址改由前端启动时按主机名跳转到正式域名（`main.tsx`），避免同一应用出现两套 Cookie 与两个登录源。
 - 本地形态与生产一致：`bun run build:web && bun run dev:api` 即单进程（静态资源 + API）；`bun run dev:web`（Vite HMR + proxy）保留给前端迭代。
 - 自定义域由 Worker 直接承载（`custom_domain: true`），同源关系不变，Cookie 鉴权与 CSRF 策略不变。

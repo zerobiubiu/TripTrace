@@ -12,7 +12,7 @@
 ## 方案
 
 - Worker `triptrace` 增加 `assets` 绑定：`directory: ../web/dist`、`not_found_handling: single-page-application`、`run_worker_first: ["/api", "/api/*"]`；自定义域改为 `trips.zerobiubiu.top`（`custom_domain: true`），不再使用 `zone_name` 路由。
-- 发布收敛为一条命令：`bun run deploy` = `build:web` + `wrangler deploy`；删除 `deploy:web`（Pages 上传）与 `apps/web` 的 `deploy` 脚本；解除并停用 Pages 项目 `triptrace-web`。
+- 发布收敛为一条命令：`bun run deploy` = `build:web` + `wrangler deploy`；删除 `deploy:web`（Pages 上传）与 `apps/web` 的 `deploy` 脚本；解除自定义域后**删除** Pages 项目 `triptrace-web`（历史部署一并清除）。
 - 旧地址（`*.workers.dev`）：资产优先模式下 Worker 不再处理非 `/api` 路径，因此移除服务端 302 分支，改为前端启动时按主机名跳转（`main.tsx`，`__CANONICAL_URL__` 由 Vite `define` 注入），避免旧地址形成第二套 Cookie。
 - 变量清理：`WEB_APP_URL` 失去用途，从代码、`wrangler.jsonc`、`env.d.ts` 一并删除。
 
@@ -44,6 +44,7 @@ Windows 10（win32 10.0.26300）/ bun 1.4.2 / wrangler 4.148.0；本地 `wrangle
 | 本地单进程路由 | `curl`（8788） | `/` → 200 HTML + CSP；`/assets/index-uo-9miqY.js` → `public, max-age=31536000, immutable`；`/records` → 200 HTML（SPA 回退）；`/api/me` → `0.4.0`；`/api/nope` → 404 JSON；`/api` → 404 |
 | 本地单进程 UI | 浏览器（8788，390×844） | MUI 105 个类 + 6 个 emotion `<style>`、登录成功、记录页渲染 119 公里条目、控制台 0 错误 |
 | 解除 Pages 自定义域 | Cloudflare API | `DELETE …/pages/projects/triptrace-web/domains/trips.zerobiubiu.top` → success；对应 Pages CNAME DNS 记录已删除；该主机名剩余记录 0、Pages 剩余自定义域 0 |
+| 删除 Pages 项目 | Cloudflare API | 项目列表 `[triptrace-web, zerobiubiu-github-io]` → `[zerobiubiu-github-io]`；zone 内剩余的 `pages.dev` DNS 记录属个人站（`zerobiubiu.top`），未触碰；删除后复核线上无影响（浏览器加载 200、`/api/me` = 0.4.0、advanced 证书 active） |
 | 单 Worker 部署 | `bun run deploy` | `Uploaded triptrace`（272.61 KiB / gzip 58.15 KiB）；triggers：`https://triptrace.1731865922.workers.dev` 与 `trips.zerobiubiu.top (custom domain)`；版本 ID `0fbb6a47-0c48-42e7-b023-92a4312914bc` |
 | 线上路由 | `curl`（域名切换后重试 3 次，前两次为切换过渡） | `/` → 200 + CSP（含 `style-src 'self' 'unsafe-inline'`）；`/api/me` → `0.4.0`；`/records` → 200 HTML;旧地址 `/api/me` → `0.4.0` |
 | 线上真实浏览器 | 暗色设备模拟 | 正式域名：MUI 类 31、emotion `<style>` 4、`body` 背景 `rgb(15,18,24)`、登录表单可见、控制台 0 错误 |
@@ -56,10 +57,11 @@ Windows 10（win32 10.0.26300）/ bun 1.4.2 / wrangler 4.148.0；本地 `wrangle
 ### 已知限制
 
 - 旧地址跳转依赖前端 JS（服务端不再 302）：禁用 JS 时用户会停留在旧地址的应用上（功能可用，只是另有一套 Cookie 作用域）。
-- Pages 项目 `triptrace-web` 仅停用未删除（避免扩大影响面）；确认无需后可手动删除。
+- Pages 项目 `triptrace-web` 已在同日删除（含历史部署）；删除后复核：Worker 自定义域与 advanced 证书仍 active（覆盖 `trips.zerobiubiu.top`）、浏览器加载 200、页面内 `/api/me` 返回 0.4.0。
 - 自定义域切换瞬间出现过短暂的 302/证书过渡（约数秒），属正常现象。
+- 本机 `curl`（Windows schannel）对 `*.zerobiubiu.top` 整条 zone 的 HTTPS 请求偶发 `http=000`（同 zone 其它站同样复现，openssl 握手正常、浏览器正常），属本机网络/TLS 栈环境问题，与本变更无关。
 
 ## 后续验证建议
 
 1. 真机访问正式域名确认登录态延续（同一主机名与 Cookie，理论上无需重新登录）。
-2. 确认不再需要 Pages 后，删除项目 `triptrace-web` 并同步文档。
+2. 删除项目 `triptrace-web` 并同步文档 —— **已完成**（2026-10-08）：Pages 项目已删除，架构现状、`AGENTS.md`、CHANGELOG 与本文档均已同步为「本站不再使用 Pages」。

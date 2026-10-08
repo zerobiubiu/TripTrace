@@ -12,7 +12,7 @@ bun workspaces 三包，前后端分离、各自独立部署：
 | `apps/web` | React 19 + Vite 的纯静态 SPA，构建到 `apps/web/dist/`，由 Worker 的 `assets` 绑定托管（不单独部署） |
 | `packages/contracts` | 前后端共享的 **API 契约类型**（只放类型，`import type` 引入，不引入运行时代码） |
 
-部署拓扑：**单 Worker**。`https://trips.zerobiubiu.top/` 是 Worker `triptrace` 的静态资源（`apps/api/wrangler.jsonc` 的 `assets.directory = ../web/dist`），`https://trips.zerobiubiu.top/api/*` 是同一个 Worker 的 Hono 路由（`run_worker_first`）；旧 `https://triptrace.1731865922.workers.dev` 也指向该 Worker，前端启动时会跳到正式域名。Pages 项目 `triptrace-web` 已停用。
+部署拓扑：**单 Worker**。`https://trips.zerobiubiu.top/` 是 Worker `triptrace` 的静态资源（`apps/api/wrangler.jsonc` 的 `assets.directory = ../web/dist`），`https://trips.zerobiubiu.top/api/*` 是同一个 Worker 的 Hono 路由（`run_worker_first`）；旧 `https://triptrace.1731865922.workers.dev` 也指向该 Worker，前端启动时会跳到正式域名。Pages 项目 `triptrace-web` 已删除（0.4.0）。
 
 ## 前端 UI
 
@@ -25,7 +25,7 @@ bun workspaces 三包，前后端分离、各自独立部署：
 ## Cloudflare 与部署
 
 - Cloudflare 操作一律用 **bun 全局安装的 wrangler**（`bun add -g wrangler`，当前 4.148.0）；wrangler 不列入任何包的依赖。若脚本报「找不到 node_modules 里的 wrangler/vite」，是旧 shim 残留，按 [docs/troubleshooting/0002](docs/troubleshooting/0002-workspace-tooling-gotchas.md) 清理。
-- 资源固定：Worker `triptrace`（含静态资源与自定义域 `trips.zerobiubiu.top`）、D1 `triptrace-db`（`52a9d143-2cb4-4888-b158-4dfb36adb6c4`）、KV `triptrace-sessions`（`aa2cda7e62da49c7bb8449ec6150d888`）、域名 `trips.zerobiubiu.top`（zone `zerobiubiu.top`）。改绑定必须同步 `apps/api/wrangler.jsonc` 并重新生成类型。Pages 项目 `triptrace-web` 已停用，不要再向它部署。
+- 资源固定：Worker `triptrace`（含静态资源与自定义域 `trips.zerobiubiu.top`）、D1 `triptrace-db`（`52a9d143-2cb4-4888-b158-4dfb36adb6c4`）、KV `triptrace-sessions`（`aa2cda7e62da49c7bb8449ec6150d888`）、域名 `trips.zerobiubiu.top`（zone `zerobiubiu.top`）。改绑定必须同步 `apps/api/wrangler.jsonc` 并重新生成类型。Pages 项目 `triptrace-web` 已删除（0.4.0），本站不再使用 Pages。
 - 部署链路：`bun run check` → `bun run deploy`（先构建前端，再由 `wrangler deploy` 发布 Worker 与静态资源，**一条命令发布全部**）。线上变更后必须做一次线上冒烟（首页静态资源与 CSP 头、`/api/me`、登录、行程读写、旧地址跳转）。
 - 密钥（如 `SIGNUP_CODE`）用 `wrangler secret put`；本地变量放 `apps/api/.dev.vars`（不入库）。
 
