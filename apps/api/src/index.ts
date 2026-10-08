@@ -1,9 +1,9 @@
 /**
- * 途迹 TripTrace 后端 Worker（Hono）。
- * 只提供 `/api/*`：
- * - 生产环境通过自定义域路由 `trips.zerobiubiu.top/api/*` 接收请求（前端在同一个域名的 `/`，由 Pages 托管）；
- * - 本地开发由 Vite 的 `/api` 代理转发到 `wrangler dev`；
- * - 其它路径（例如 workers.dev 旧地址）302 跳转到前端站点。
+ * 途迹 TripTrace Worker（Hono + 静态资源），**单部署物**：
+ * - `/api`、`/api/*` 由 `run_worker_first` 交给 Hono 路由；
+ * - 其余路径由 `assets` 绑定提供 `apps/web/dist`（未命中按 SPA 回退 index.html）；
+ * - 安全响应头随静态资源由 `apps/web/public/_headers` 下发，接口响应由 `securityHeaders` 中间件补齐。
+ * 本地开发：`bun run build:web && bun run dev:api` 即与生产同形态；`bun run dev:web`（Vite HMR）走 proxy 转发 /api。
  */
 
 import { Hono } from "hono";
@@ -20,12 +20,7 @@ app.route("/api", authRoutes);
 app.route("/api", tripRoutes);
 
 app.notFound((c) => {
-  const url = new URL(c.req.url);
-  const webAppUrl = c.env.WEB_APP_URL;
-  if (webAppUrl && !url.pathname.startsWith("/api/")) {
-    const target = new URL(`${url.pathname}${url.search}`, webAppUrl);
-    return applySecurityHeaders(c.redirect(target.toString(), 302));
-  }
+  // 只有 /api 前缀会进入 Worker（其余交给静态资源），因此这里只可能是接口 404
   return applySecurityHeaders(c.json({ error: { code: "not_found", message: "请求的接口不存在" } }, 404));
 });
 

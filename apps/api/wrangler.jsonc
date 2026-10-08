@@ -5,10 +5,16 @@
   "workers_dev": true,
   "routes": [
     {
-      "pattern": "trips.zerobiubiu.top/api/*",
-      "zone_name": "zerobiubiu.top"
+      "pattern": "trips.zerobiubiu.top",
+      "custom_domain": true
     }
   ],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "../web/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api", "/api/*"]
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -24,9 +30,8 @@
     }
   ],
   "vars": {
-    "APP_VERSION": "0.3.0",
-    "PBKDF2_ITERATIONS": "100000",
-    "WEB_APP_URL": "https://trips.zerobiubiu.top"
+    "APP_VERSION": "0.4.0",
+    "PBKDF2_ITERATIONS": "100000"
   },
   "observability": {
     "enabled": true,

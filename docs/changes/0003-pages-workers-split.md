@@ -4,6 +4,7 @@
 - 生效版本：0.3.0
 - 影响范围：工程结构（单包 → bun workspaces）、部署拓扑（单 Worker → Pages 前端 + Worker 后端路由）、本地开发流程
 - 前置文档：[changes/0002-stack-refactor.md](0002-stack-refactor.md)、[architecture/0001-triptrace-architecture.md](../architecture/0001-triptrace-architecture.md)（已按本变更更新为现状）
+- 后续变更：[changes/0005-single-worker-topology.md](0005-single-worker-topology.md)——本变更引入的「Pages 前端 + Worker 路由」拓扑已在 0.4.0 合并回单 Worker；本文件其余内容（工程结构拆分、契约包等）仍然有效。
 
 ## 1. 背景
 

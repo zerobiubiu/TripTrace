@@ -34,7 +34,7 @@ web
 
 技术与运营约束：
 
-- 运行时：Cloudflare Workers（Hono）+ D1 + KV；前端 React SPA 由 Pages 托管，API 与前端**同域名、两个路径**。
+- 运行时：Cloudflare Workers（Hono）+ D1 + KV；前端 React SPA 作为静态资源由同一个 Worker 的 `assets` 绑定托管，API 与前端**同 Worker、同域名**。
 - 前端组件库：**MUI（Material UI）v9**（含 emotion 样式引擎与 @mui/icons-material）。因 MUI 的样式在运行时注入，**构建期降级管线对组件库自身 CSS 无效，MUI 的官方基线就是本产品的真实兼容地板**。
 - **浏览器支持基线（2026-10-08 修订，用户明确选择）**：Chrome ≥117 / Edge ≥121 / Firefox ≥121 / Safari ≥17（macOS 与 iOS）。微信内置浏览器**仅在系统内核满足该基线时**在支持范围内（iOS 17+、Android WebView ≥117）；**旧机型与旧微信内核已不在支持范围** —— 这是为换取组件库与长期可维护性而做的取舍，取代此前「必须支持微信内置浏览器与旧机型」的绝对要求。
 - 密码：PBKDF2-SHA256，迭代受 workerd 10 万次上限约束；**无邮箱找回**，忘记密码只能由管理员在 D1 侧重置（属于已接受的取舍）。
@@ -54,7 +54,7 @@ web
 
 - 用户真实的历史文本记录，已作为导入示例内置于应用：`apps/web/src/lib/sampleText.ts`（可直接作为解析与呈现的真实素材）。
 - 用户本人账号在线上 D1 已有真实行程数据（2 条，2026-10-08 起）。
-- 线上地址：https://trips.zerobiubiu.top （前端 Pages / 后端 Worker 路由）。
+- 线上地址：https://trips.zerobiubiu.top （单 Worker：静态资源 + `/api/*`，一次 `wrangler deploy` 发布）。
 
 ## Product Principles
 

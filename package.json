@@ -1,9 +1,9 @@
 {
   "name": "triptrace",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
-  "description": "途迹 TripTrace —— 出差行程节点与里程的填报、建议与统计（前端 Pages + 后端 Workers）",
+  "description": "途迹 TripTrace —— 出差行程节点与里程的填报、建议与统计（单 Worker：静态资源 + API）",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -13,8 +13,7 @@
     "dev:web": "bun --filter @triptrace/web dev",
     "check": "bun --filter @triptrace/api types && node scripts/check-version.mjs && tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.node.json --noEmit",
     "build:web": "bun --filter @triptrace/web build",
-    "deploy:api": "bun --filter @triptrace/api deploy",
-    "deploy:web": "bun --filter @triptrace/web deploy",
+    "deploy": "bun run build:web && bun --filter @triptrace/api deploy",
     "db:generate": "bun --filter @triptrace/api db:generate",
     "db:migrate:local": "bun --filter @triptrace/api db:migrate:local",
     "db:migrate:remote": "bun --filter @triptrace/api db:migrate:remote"

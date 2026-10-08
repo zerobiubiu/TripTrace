@@ -9,36 +9,37 @@
 
 记录每日出差行程：**节点链（家 → 圣润 → 天九 → …）+ 分段里程（可选）+ 总里程**，并按日/月/年汇总。核心要求：日期默认今天可改、节点可自由输入、分段可不填只填总里程、历史路线自动提示以减少输入、数据持久化按账号隔离、登录态长期有效、**移动端为主桌面端可用**。
 
-## 2. 部署拓扑：同一域名，两个路径
+## 2. 部署拓扑：单 Worker（静态资源 + API）
 
 ```text
-https://trips.zerobiubiu.top/         → Cloudflare Pages（apps/web 构建产物 dist/，含 _headers）
-https://trips.zerobiubiu.top/api/*    → Worker 路由 → Worker `triptrace`（apps/api，Hono）
-https://triptrace.<sub>.workers.dev   → 保留：/api/* 可用；非 API 路径 302 跳前端站点
+https://trips.zerobiubiu.top/           → Worker `triptrace` 的 assets 绑定（apps/web/dist，含 _headers）
+https://trips.zerobiubiu.top/api/*      → 同一个 Worker 的 Hono 路由（run_worker_first）
+https://triptrace.<sub>.workers.dev     → 同一个 Worker：前端启动时按主机名跳到正式域名
 ```
 
-- **同源设计**：前端与 API 同一主机名，Cookie（HttpOnly + SameSite=Lax + 400 天）与 CSRF 校验策略无需为跨源做让步，也不需要 CORS。
-- **路由优先**：官方规则「Routes 在同一主机名上优先于 Custom Domain」，因此 `/api/*` 稳定命中 Worker，其余路径由 Pages 提供（含 SPA 回退与 `_headers` 注入的安全头）。
-- 前端与后端**各自独立部署**：前端 `wrangler pages deploy`，后端 `wrangler deploy`。
+- **单部署物**：0.3.0 的「Pages 前端 + Worker 路由」已合并；一次 `wrangler deploy` 同时发布前后端（见 [changes/0005](../changes/0005-single-worker-topology.md)）。
+- **路由分工**：`run_worker_first: ["/api", "/api/*"]` 让接口优先进入 Hono；其余路径由 `assets` 提供，未命中时按 `not_found_handling: single-page-application` 回退到 `index.html`。
+- **同源设计**：前端与接口同一主机名、同一 Worker，Cookie（HttpOnly + SameSite=Lax + 400 天）与 CSRF 校验无需跨源让步，也不需要 CORS。
+- 自定义域由 Worker 直接承载（`custom_domain: true`）；静态资源由 `wrangler` 在上传时从 `../web/dist` 读取，安全头由 `_headers` 随资源下发。
 
 ## 3. 工程结构（bun workspaces）
 
 | 包 | 内容 | 职责 |
 | --- | --- | --- |
 | `apps/api` | `src/index.ts`（Hono 入口）、`src/lib/*`、`src/routes/*`、`src/db/schema.ts`、`migrations/`、`wrangler.jsonc`、`drizzle.config.ts` | 只提供 `/api/*`；D1/KV 绑定；迁移与 drizzle 生成 |
-| `apps/web` | `src/*`（React SPA）、`index.html`、`vite.config.ts`、`public/`（`icon.svg`、`manifest.webmanifest`、`_headers`） | 纯静态 SPA，构建到 `dist/`，由 Pages 托管 |
+| `apps/web` | `src/*`（React SPA）、`index.html`、`vite.config.ts`、`public/`（`icon.svg`、`manifest.webmanifest`、`_headers`） | 纯静态 SPA，构建到 `dist/`，由 Worker 的 `assets` 绑定托管（不再单独部署） |
 | `packages/contracts` | `src/index.ts` | **只放类型**的前后端契约（`import type` 引入，打包时擦除，零运行时耦合） |
 
 工具链：bun（依赖与脚本）、全局 wrangler（`bun add -g wrangler`，迁移/部署/types/secret 都用它）、Drizzle（ORM 与迁移生成）、Vite 8 + React 19（前端构建）、TypeScript 7（三份 tsconfig：api / web / web-node）。
 
-本地开发是两个进程：
+本地开发两种形态：
 
 ```bash
-bun run dev:api   # wrangler dev（8787，本地 D1/KV，加载 apps/api/.dev.vars）
-bun run dev:web   # vite（5173，代理 /api → 8787，保持同源语义）
+bun run build:web && bun run dev:api   # 单进程（8787）：同时提供静态资源与 /api，与生产同形态
+bun run dev:web                        # Vite HMR（5173，代理 /api → 8787），前端迭代更快
 ```
 
-跨源写操作的 Origin 白名单放在 `apps/api/.dev.vars` 的 `ALLOWED_ORIGINS`（不入库，仅本地需要）。
+生产同形态下浏览器直接开 `http://127.0.0.1:8787/`；走 Vite 时跨源写操作的 Origin 白名单可放在 `apps/api/.dev.vars` 的 `ALLOWED_ORIGINS`（不入库，仅本地需要，通常用不上）。
 
 ## 4. 数据模型（`apps/api/src/db/schema.ts`）
 
@@ -120,8 +121,9 @@ CSP 由 `apps/web/public/_headers` 下发（`default-src 'none'`；`script-src '
 
 | 资源 | 名称 | 标识 |
 | --- | --- | --- |
-| 前端（Pages） | `triptrace-web` | https://trips.zerobiubiu.top（项目子域 `triptrace-web-367.pages.dev`） |
-| 后端（Worker） | `triptrace` | 路由 `trips.zerobiubiu.top/api/*`；旧地址 https://triptrace.1731865922.workers.dev |
+| 站点 + 接口（Worker） | `triptrace` | 自定义域 https://trips.zerobiubiu.top（静态资源 + `/api/*`）；旧地址 https://triptrace.1731865922.workers.dev |
+| 前端构建产物 | `apps/web/dist` | 由 `wrangler deploy` 随 Worker 的 `assets` 上传（不单独部署） |
+| 已停用（Pages） | `triptrace-web` | 0.4.0 起不再部署，保留历史，不再有自定义域 |
 | D1 | `triptrace-db` | `52a9d143-2cb4-4888-b158-4dfb36adb6c4` |
 | KV | `triptrace-sessions` | `aa2cda7e62da49c7bb8449ec6150d888` |
 | 账号 / Zone | 1731865922@qq.com's Account | `ece132b98267492c057accef6a60fe05` / `zerobiubiu.top`（`68a3e4dbefea64cdd5a83d4671c2ca96`） |
@@ -129,11 +131,9 @@ CSP 由 `apps/web/public/_headers` 下发（`default-src 'none'`；`script-src '
 ```bash
 bun install                 # 依赖（wrangler 需另装：bun add -g wrangler）
 bun run check               # 绑定类型 → 版本门禁 → api/web/node 三份 tsc
-bun run dev:api             # 本地后端 8787（首次先 bun run db:migrate:local）
-bun run dev:web             # 本地前端 5173（代理 /api）
 bun run build:web           # 前端产物 apps/web/dist
-bun run deploy:api          # 部署 Worker（含路由与变量）
-bun run deploy:web          # 构建 + 上传到 Pages 项目 triptrace-web
+bun run dev:api             # 本地单进程 8787（首次先 bun run db:migrate:local）
+bun run deploy              # 构建前端 + 部署 Worker（一条命令发布前后端）
 bun run db:migrate:local|remote
 ```
 
@@ -145,7 +145,7 @@ bun run db:migrate:local|remote
 - 设计系统为 MUI v9 + emotion（0.3.0 起）：前端文档的 CSP 必须放行 `style-src 'unsafe-inline'`；`vite preview` 不解析 `_headers`，头部与 CSP 只能在 `wrangler dev` 或生产上验证。
 - 行程列表一次性拉全量（个人量级：数年数百条）；数据量到数千条以上需要加范围查询与分页。
 - 无密码找回：以管理员身份在 D1 侧重置（见 troubleshooting/0001）。
-- 无离线写入：断网只能读已加载页面，不能提交（无 Service Worker/本地队列）。
-- 本地 `vite dev`/`wrangler dev` 是两个进程；跨源写操作依赖 `apps/api/.dev.vars` 的 `ALLOWED_ORIGINS`（新机器克隆后需补建）。
-- 旧地址（workers.dev）与新域名不共享 Cookie：换域名后旧站点登录态不迁移，需要在新站点重新登录一次。
+- 无离线写入：断网只能读已加载页面，不能提交（无 Service Worker 或本地队列）。
+- 旧地址（workers.dev）与新域名不共享 Cookie：前端启动时会按主机名把 `.workers.dev` 跳到正式域名，因此不会在旧地址上再形成第二套登录态（`/api/*` 直连旧地址仍可用，仅供调试）。
+- 本地有两种形态：单进程（`build:web` + `dev:api`，与生产一致）与双进程（Vite HMR + `dev:api`，代理保证同源；跨源兜底靠 `.dev.vars` 的 `ALLOWED_ORIGINS`，新机器克隆后需补建）。
 - 工具链坑（shim 残留、全局 vite 抢占、Pages 域名 DNS、TS7 baseUrl）见 [troubleshooting/0002](../troubleshooting/0002-workspace-tooling-gotchas.md)。
