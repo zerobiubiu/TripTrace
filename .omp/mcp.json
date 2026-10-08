@@ -1,0 +1,10 @@
+{
+    "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+    "mcpServers": {
+        "cloudflare": {
+            "_comment": "Cloudflare API MCP（Code Mode）| http | 覆盖整个 Cloudflare API；首次使用触发 OAuth 授权",
+            "type": "http",
+            "url": "https://mcp.cloudflare.com/mcp"
+        }
+    }
+}
