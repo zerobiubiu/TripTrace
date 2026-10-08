@@ -14,6 +14,14 @@ bun workspaces 三包，前后端分离、各自独立部署：
 
 部署拓扑：`https://trips.zerobiubiu.top/` → Pages（项目 `triptrace-web`）；`https://trips.zerobiubiu.top/api/*` → Worker 路由（Worker 名 `triptrace`）。旧 `https://triptrace.1731865922.workers.dev` 保留：`/api` 可用，其它路径 302 跳前端。
 
+## 前端 UI
+
+- UI 一律用 MUI v9 组件与 `sx`；不新增手写 CSS 文件，`apps/web/src/app.css` 只放全局基线（`html/body`、安全区变量）。
+- 颜色、圆角、间距一律走 `apps/web/src/theme.ts` 的令牌；组件里不写死颜色；字号下限 14px（MUI 默认 Chip / Caption 偏小，需要时抬到 `body2` 档）。
+- 图标用 `@mui/icons-material`，不用 emoji 或 unicode 字符当图标；移动端核心路径触摸目标 ≥44px；可交互元素必须带 `role` / `aria-label` 且可键盘聚焦。
+- 交互不得无声吞掉用户输入：失败写操作要保留草稿（`apps/web/src/lib/draft.ts`）；批量或破坏性操作要可撤销。
+- 启动阶段接口失败一律给**可重试的错误屏**，绝不降级成登录页（否则用户会误判为被登出）。
+
 ## Cloudflare 与部署
 
 - Cloudflare 操作一律用 **bun 全局安装的 wrangler**（`bun add -g wrangler`，当前 4.148.0）；wrangler 不列入任何包的依赖。若脚本报「找不到 node_modules 里的 wrangler/vite」，是旧 shim 残留，按 [docs/troubleshooting/0002](docs/troubleshooting/0002-workspace-tooling-gotchas.md) 清理。
@@ -32,7 +40,7 @@ bun workspaces 三包，前后端分离、各自独立部署：
 - 静态检查：`bun run check`（生成绑定类型 → 版本一致性 → api/web/node 三份 tsconfig）。
 - 本地：`bun run dev:api`（8787，首次先 `bun run db:migrate:local`）+ `bun run dev:web`（5173，代理 `/api`）；跨源写操作需要 `apps/api/.dev.vars` 里的 `ALLOWED_ORIGINS`。
 - 改了前端或接口，必须用浏览器真实走一遍受影响流程；移动端（窄视口）与桌面端（宽视口）各看一次。
-- 前端受 CSP 约束（`default-src 'none'; script-src 'self'` 等，见 `apps/web/public/_headers`），不要引入内联脚本/样式；React 的 `style` 属性是 CSSOM 赋值，可用。
+- 前端受 CSP 约束（见 `apps/web/public/_headers`）：`script-src 'self'`（无内联脚本）、`style-src 'self' 'unsafe-inline'`（MUI/emotion 运行时注入样式的必要代价）。**`_headers` 文件不支持注释行**，加注释会让整份规则解析失败。
 
 ## Git
 

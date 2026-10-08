@@ -1,4 +1,18 @@
 import { useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  Chip,
+  Divider,
+  FormControlLabel,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { chainText, formatDateLabel, formatKm } from "../lib/format";
 import { parseRecords } from "../lib/importText";
 import { SAMPLE_TEXT } from "../lib/sampleText";
@@ -7,9 +21,11 @@ import type { ImportEntry, TripPayload } from "../types";
 interface ImportViewProps {
   onImport: (trips: TripPayload[]) => Promise<{ created: number; skipped: number }>;
   notify: (text: string, kind?: "info" | "error") => void;
+  /** 已有记录的键集合：`${date}|${nodes.join("\u0001")}`（同日同链）。 */
+  existing: Set<string>;
 }
 
-export function ImportView({ onImport, notify }: ImportViewProps) {
+export function ImportView({ onImport, notify, existing }: ImportViewProps) {
   const [text, setText] = useState("");
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [entries, setEntries] = useState<ImportEntry[] | null>(null);
@@ -55,146 +71,202 @@ export function ImportView({ onImport, notify }: ImportViewProps) {
     }
   };
 
+  /** 清空预览结果（保留输入文本）。 */
+  const resetPreview = () => {
+    setEntries(null);
+    setNotes([]);
+    setError("");
+  };
+
   return (
-    <div className="page">
-      <div className="import-grid">
-        <section className="card">
-          <p className="card-title">导入历史文本</p>
-          <p className="small muted">支持“日期 + 节点链 + 里程”的文本记录：只写日期、只写节点、写总里程都可以。</p>
-          <div className="field">
-            <textarea
-              className="input"
-              rows={12}
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1.1fr) minmax(0, 1fr)" },
+        gap: 1.5,
+        alignItems: "start",
+      }}
+    >
+      <Card variant="outlined">
+        <CardContent>
+          <Stack spacing={1.5}>
+            <Typography variant="h3" component="h3">
+              导入历史文本
+            </Typography>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              支持“日期 + 节点链 + 里程”的文本记录：只写日期、只写节点、写总里程都可以。
+            </Typography>
+            <TextField
+              label="历史记录文本"
+              multiline
+              minRows={12}
+              fullWidth
               placeholder={"例如：\n9.28\n家，依剑，爱克森，圣润  57 公里"}
               value={text}
               onChange={(event) => setText(event.target.value)}
             />
-          </div>
-          <div className="row wrap">
-            <label className="small muted" htmlFor="import-year">
-              年份
-            </label>
-            <input
-              id="import-year"
-              className="input is-compact"
-              type="number"
-              min={2000}
-              max={2100}
-              value={year}
-              onChange={(event) => setYear(Number.parseInt(event.target.value, 10) || year)}
-            />
-            <button type="button" className="btn btn-sm" onClick={handleParse}>
-              解析预览
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={() => {
-                setText(SAMPLE_TEXT);
-                setEntries(null);
-                setNotes([]);
-                setError("");
-              }}
-            >
-              填入示例
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={() => {
-                setText("");
-                setEntries(null);
-                setNotes([]);
-                setError("");
-              }}
-            >
-              清空
-            </button>
-          </div>
-          {error ? <p className="hint-line">{error}</p> : null}
-        </section>
+            <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+              <TextField
+                label="年份"
+                type="number"
+                size="small"
+                value={year}
+                onChange={(event) => setYear(Number.parseInt(event.target.value, 10) || year)}
+                slotProps={{ htmlInput: { min: 2000, max: 2100, inputMode: "numeric" } }}
+                sx={{ width: 96 }}
+              />
+              <Button variant="contained" onClick={handleParse}>
+                解析预览
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setText(SAMPLE_TEXT);
+                  resetPreview();
+                }}
+              >
+                填入示例
+              </Button>
+              <Button
+                variant="text"
+                onClick={() => {
+                  setText("");
+                  resetPreview();
+                }}
+              >
+                清空
+              </Button>
+            </Stack>
+            {error ? <Alert severity="error">{error}</Alert> : null}
+          </Stack>
+        </CardContent>
+      </Card>
 
-        <aside>
-          {notes.length > 0 ? (
-            <section className="card">
-              <p className="card-title">解析说明</p>
-              <div className="list">
-                {notes.map((note) => (
-                  <div className="small muted" key={note}>
-                    · {note}
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
+      <Stack spacing={1.5}>
+        {notes.length > 0 ? (
+          <Alert severity="info" sx={{ alignItems: "flex-start" }}>
+            <Typography variant="h3" component="h3">
+              解析说明
+            </Typography>
+            <Stack spacing={0.25} sx={{ mt: 0.5 }}>
+              {notes.map((note) => (
+                <Typography variant="caption" key={note}>
+                  · {note}
+                </Typography>
+              ))}
+            </Stack>
+          </Alert>
+        ) : null}
 
-          {entries ? (
-            <section className="card">
-              <div className="row-between">
-                <p className="card-title">
-                  解析结果（{entries.length} 条，已选 {checkedCount} 条）
-                </p>
-                <div className="row">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
-                    onClick={() => setEntries((current) => current?.map((entry) => ({ ...entry, checked: true })) ?? null)}
-                  >
-                    全选
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
-                    onClick={() =>
-                      setEntries((current) => current?.map((entry) => ({ ...entry, checked: false })) ?? null)
-                    }
-                  >
-                    全不选
-                  </button>
-                </div>
-              </div>
-              <div className="list">
-                {entries.map((entry, index) => (
-                  <label className="check-row" key={`${entry.date}-${entry.nodes.join("-")}-${index}`}>
-                    <input
-                      type="checkbox"
-                      checked={entry.checked}
-                      onChange={(event) =>
-                        setEntries(
-                          (current) =>
-                            current?.map((item, itemIndex) =>
-                              itemIndex === index ? { ...item, checked: event.target.checked } : item,
-                            ) ?? null,
-                        )
+        {entries ? (
+          <Card variant="outlined">
+            <CardContent>
+              <Stack spacing={1.5}>
+                <Stack
+                  direction="row"
+                  useFlexGap
+                  spacing={1}
+                  sx={{ alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}
+                >
+                  <Typography variant="h3" component="h3">
+                    解析结果（
+                    <Box component="span" aria-live="polite">
+                      {entries.length} 条，已选 {checkedCount} 条
+                    </Box>
+                    ）
+                  </Typography>
+                  <Stack direction="row" sx={{ columnGap: 0.5 }}>
+                    <Button
+                      size="small"
+                      onClick={() => setEntries((current) => current?.map((entry) => ({ ...entry, checked: true })) ?? null)}
+                    >
+                      全选
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={() => setEntries((current) => current?.map((entry) => ({ ...entry, checked: false })) ?? null)}
+                    >
+                      全不选
+                    </Button>
+                  </Stack>
+                </Stack>
+
+                <Stack spacing={0} divider={<Divider flexItem />}>
+                  {entries.map((entry, index) => (
+                    <FormControlLabel
+                      key={`${entry.date}-${entry.nodes.join("-")}-${index}`}
+                      control={
+                        <Checkbox
+                          checked={entry.checked}
+                          onChange={(event) =>
+                            setEntries(
+                              (current) =>
+                                current?.map((item, itemIndex) =>
+                                  itemIndex === index ? { ...item, checked: event.target.checked } : item,
+                                ) ?? null,
+                            )
+                          }
+                        />
                       }
+                      label={
+                        <Stack component="span" sx={{ display: "block", py: 0.75 }}>
+                          <Typography
+                            component="span"
+                            variant="body2"
+                            sx={{ display: "block", fontWeight: 600, overflowWrap: "anywhere" }}
+                          >
+                            {formatDateLabel(entry.date)} · {chainText(entry.nodes)}
+                          </Typography>
+                          <Stack
+                            component="span"
+                            direction="row"
+                            useFlexGap
+                            spacing={1}
+                            sx={{ alignItems: "center", flexWrap: "wrap", mt: 0.25 }}
+                          >
+                            <Typography component="span" variant="caption" sx={{ color: "text.secondary" }}>
+                              {entry.totalKm === null ? "未填里程" : `${formatKm(entry.totalKm)} 公里`}
+                            </Typography>
+                            {/* 键与 App 的 existing 约定一致：`${date}|${nodes.join("\u0001")}` */}
+                            {existing.has(`${entry.date}|${entry.nodes.join("\u0001")}`) ? (
+                              <Chip component="span" size="small" color="warning" label="同日同链已有记录" />
+                            ) : null}
+                          </Stack>
+                          {entry.hint ? (
+                            <Typography
+                              component="span"
+                              variant="caption"
+                              sx={{ display: "block", color: "text.secondary" }}
+                            >
+                              {entry.hint}
+                            </Typography>
+                          ) : null}
+                        </Stack>
+                      }
+                      sx={{
+                        alignItems: "flex-start",
+                        width: "100%",
+                        margin: 0,
+                        columnGap: 0.5,
+                        "& .MuiFormControlLabel-label": { flex: 1, minWidth: 0 },
+                      }}
                     />
-                    <span className="check-body">
-                      <span className="check-title">
-                        {formatDateLabel(entry.date)} · {chainText(entry.nodes)}
-                      </span>
-                      <span className="tiny muted">
-                        {" "}
-                        · {entry.totalKm === null ? "未填里程" : `${formatKm(entry.totalKm)} 公里`}
-                      </span>
-                      {entry.hint ? <div className="tiny muted">{entry.hint}</div> : null}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <div className="actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
+                  ))}
+                </Stack>
+
+                <Button
+                  variant="contained"
                   disabled={checkedCount === 0 || busy}
                   onClick={handleImport}
+                  sx={{ alignSelf: "flex-start" }}
                 >
                   {busy ? "导入中…" : `导入选中的 ${checkedCount} 条`}
-                </button>
-              </div>
-            </section>
-          ) : null}
-        </aside>
-      </div>
-    </div>
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        ) : null}
+      </Stack>
+    </Box>
   );
 }

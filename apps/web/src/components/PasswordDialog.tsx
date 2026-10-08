@@ -1,106 +1,118 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import {
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  TextField,
+} from "@mui/material";
 import { api } from "../api";
 
 interface PasswordDialogProps {
   open: boolean;
+  username: string;
   onClose: () => void;
   onDone: (message: string) => void;
-  onError: (message: string) => void;
 }
 
-export function PasswordDialog({ open, onClose, onDone, onError }: PasswordDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+/** 修改密码：错误就地显示在对话框内（不再被模态遮罩压住），标题通过 aria-labelledby 关联。 */
+export function PasswordDialog({ open, username, onClose, onDone }: PasswordDialogProps) {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
 
   const reset = () => {
     setCurrent("");
     setNext("");
     setConfirm("");
+    setError("");
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleClose = () => {
+    if (busy) return;
+    reset();
+    onClose();
+  };
+
+  const handleSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (next !== confirm) {
-      onError("两次输入的新密码不一致");
+      setError("两次输入的新密码不一致");
       return;
     }
     setBusy(true);
+    setError("");
     try {
       await api.changePassword(current, next);
       reset();
       onDone("密码已更新，其他设备的登录已退出");
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "修改失败");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "修改失败，请稍后重试");
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <dialog ref={dialogRef} className="sheet" onClose={onClose}>
+    <Dialog open={open} onClose={handleClose} aria-labelledby="pwd-dialog-title" fullWidth maxWidth="xs">
       <form onSubmit={handleSubmit}>
-        <p className="card-title">修改密码</p>
-        <div className="field">
-          <label className="field-label" htmlFor="pwd-current">
-            当前密码
-          </label>
-          <input
-            id="pwd-current"
-            className="input"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={current}
-            onChange={(event) => setCurrent(event.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label className="field-label" htmlFor="pwd-next">
-            新密码（至少 8 位）
-          </label>
-          <input
-            id="pwd-next"
-            className="input"
-            type="password"
-            autoComplete="new-password"
-            required
-            value={next}
-            onChange={(event) => setNext(event.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label className="field-label" htmlFor="pwd-confirm">
-            确认新密码
-          </label>
-          <input
-            id="pwd-confirm"
-            className="input"
-            type="password"
-            autoComplete="new-password"
-            required
-            value={confirm}
-            onChange={(event) => setConfirm(event.target.value)}
-          />
-        </div>
-        <div className="actions">
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? "保存中…" : "保存"}
-          </button>
-          <button type="button" className="btn" onClick={onClose}>
+        <DialogTitle id="pwd-dialog-title">修改密码</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            {/* 供浏览器密码管理器识别（隐藏但存在），消除「密码表单缺少用户名字段」的告警 */}
+            <TextField
+              type="text"
+              label="用户名"
+              value={username}
+              autoComplete="username"
+              tabIndex={-1}
+              aria-hidden
+              sx={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
+            />
+            <TextField
+              id="pwd-current"
+              label="当前密码"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={current}
+              onChange={(event) => setCurrent(event.target.value)}
+            />
+            <TextField
+              label="新密码（至少 8 位）"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={next}
+              onChange={(event) => setNext(event.target.value)}
+            />
+            <TextField
+              label="确认新密码"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={confirm}
+              onChange={(event) => setConfirm(event.target.value)}
+              error={Boolean(confirm) && next !== confirm}
+              helperText={Boolean(confirm) && next !== confirm ? "两次输入不一致" : " "}
+            />
+            {error ? <Alert severity="error">{error}</Alert> : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleClose} disabled={busy}>
             取消
-          </button>
-        </div>
+          </Button>
+          <Button type="submit" variant="contained" disabled={busy}>
+            {busy ? "保存中…" : "保存"}
+          </Button>
+        </DialogActions>
       </form>
-    </dialog>
+    </Dialog>
   );
 }

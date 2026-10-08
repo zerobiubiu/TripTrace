@@ -10,6 +10,7 @@
 | `changes/` | [0001-triptrace-mvp.md](changes/0001-triptrace-mvp.md) | 变更记录 | 已执行 | 首个可用版本（0.1.0）：背景、方案、实施清单、验证记录 |
 | `changes/` | [0002-stack-refactor.md](changes/0002-stack-refactor.md) | 变更记录 | 已执行 | 技术栈重构（0.2.0）：bun + Hono + Drizzle + React、移动优先响应式布局 |
 | `changes/` | [0003-pages-workers-split.md](changes/0003-pages-workers-split.md) | 变更记录 | 已执行 | 前后端分离与 Pages + Workers 双部署（0.3.0） |
+| `changes/` | [0004-mui-frontend-migration.md](changes/0004-mui-frontend-migration.md) | 变更记录 | 已执行 | 前端迁移到 MUI v9（0.3.0）：设计令牌体系、九项审计问题修复（触摸目标 / 对比度 / 草稿 / 启动失败屏 / 导入去重等） |
 | `troubleshooting/` | [0001-auth-and-session-ops.md](troubleshooting/0001-auth-and-session-ops.md) | 排查手册 | 参考 | PBKDF2 迭代上限与 CPU 额度取舍；手动删用户后的会话缓存清理步骤 |
 | `troubleshooting/` | [0002-workspace-tooling-gotchas.md](troubleshooting/0002-workspace-tooling-gotchas.md) | 排查手册 | 参考 | workspaces 拆分后的工具链坑：shim 残留、全局 vite 抢占、Pages 项目创建与自定义域 DNS、TS7 baseUrl |
 
@@ -36,4 +37,4 @@
 ## 四、与项目其它规则的关系
 
 - 执行规则（Git、项目版本、验证命令、部署）写在项目根 [AGENTS.md](../AGENTS.md)，细节留在本目录，不整篇复制进 AGENTS.md。
-- 版本号唯一事实来源是 `package.json`；`wrangler.jsonc` 的 `vars.APP_VERSION` 由 `npm run check` 门禁校验一致性。
+- 版本号唯一事实来源是 `package.json`；`wrangler.jsonc` 的 `vars.APP_VERSION` 由 `bun run check` 门禁校验一致性。

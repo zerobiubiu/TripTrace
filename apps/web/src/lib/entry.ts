@@ -1,7 +1,7 @@
 /** 填报表单的纯函数逻辑：节点链、分段建议、总里程自动合计/手动覆盖。 */
 
 import type { Trip, TripPayload } from "../types";
-import { formatKm, normalizeName, parseKmInput, todayIso } from "./format";
+import { formatKm, kmState, normalizeName, parseKmInput, todayIso } from "./format";
 import { findRoute, suggestLegKm, type LegSuggestion, type RouteHit, type SuggestIndex } from "./suggest";
 
 export interface EntryForm {
@@ -137,9 +137,18 @@ export function formToPayload(form: EntryForm): TripPayload {
     legs: form.legs.map((value, index) => ({
       from: nodes[index] ?? "",
       to: nodes[index + 1] ?? "",
-      km: parseKmInput(value),
+      km: kmState(value).value,
     })),
-    totalKm: parseKmInput(form.total),
+    totalKm: kmState(form.total).value,
     note: form.note.trim(),
   };
+}
+
+/** 保存前的非法输入检查：非法就就地报错，不允许静默丢成「未填里程」。 */
+export function formKmIssues(form: EntryForm): { totalInvalid: boolean; invalidLegIndexes: number[] } {
+  const invalidLegIndexes: number[] = [];
+  form.legs.forEach((value, index) => {
+    if (kmState(value).invalid) invalidLegIndexes.push(index);
+  });
+  return { totalInvalid: kmState(form.total).invalid, invalidLegIndexes };
 }

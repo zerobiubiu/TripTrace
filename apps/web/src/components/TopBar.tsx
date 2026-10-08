@@ -1,48 +1,94 @@
+import { useRef, useState } from "react";
+import {
+  AppBar,
+  Box,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Toolbar,
+  Typography,
+} from "@mui/material";
+import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
+import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import type { User } from "../types";
 
 interface TopBarProps {
   user: User;
-  menuOpen: boolean;
-  onToggleMenu: () => void;
   onOpenPassword: () => void;
   onExport: () => void;
   onLogout: () => void;
 }
 
-export function TopBar({ user, menuOpen, onToggleMenu, onOpenPassword, onExport, onLogout }: TopBarProps) {
+/** 顶栏：品牌（全站唯一的 h1）+ 当前用户 + 更多操作菜单（Esc / 点击外部关闭由 MUI Menu 负责）。 */
+export function TopBar({ user, onOpenPassword, onExport, onLogout }: TopBarProps) {
+  const anchorRef = useRef<HTMLButtonElement | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const runAndClose = (action: () => void) => () => {
+    setOpen(false);
+    action();
+  };
+
   return (
-    <header className="topbar">
-      <div className="brand">
-        <img className="brand-mark" src="/icon.svg" alt="" />
-        <span className="brand-name">途迹</span>
-      </div>
-      <div className="topbar-actions">
-        <span className="who">{user.displayName}</span>
-        <div className="menu-wrap">
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="更多操作"
-            aria-expanded={menuOpen}
-            onClick={onToggleMenu}
-          >
-            ⋯
-          </button>
-          {menuOpen ? (
-            <div className="menu" role="menu">
-              <button type="button" role="menuitem" onClick={onOpenPassword}>
-                修改密码
-              </button>
-              <button type="button" role="menuitem" onClick={onExport}>
-                导出数据（JSON）
-              </button>
-              <button type="button" role="menuitem" onClick={onLogout}>
-                退出登录
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </header>
+    <AppBar
+      position="sticky"
+      color="transparent"
+      elevation={0}
+      sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}
+    >
+      <Toolbar sx={{ gap: 1 }}>
+        <Box component="img" src="/icon.svg" alt="" sx={{ width: 26, height: 26, borderRadius: "8px" }} />
+        <Typography variant="h1" component="h1" sx={{ fontSize: "1.125rem" }}>
+          途迹
+        </Typography>
+        <Box sx={{ flex: 1 }} />
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ maxWidth: "32vw", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
+          {user.displayName}
+        </Typography>
+        <IconButton
+          ref={anchorRef}
+          aria-label="更多操作"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen(true)}
+        >
+          <MoreVertRoundedIcon />
+        </IconButton>
+        <Menu
+          anchorEl={anchorRef.current}
+          open={open}
+          onClose={() => setOpen(false)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <MenuItem onClick={runAndClose(onOpenPassword)}>
+            <ListItemIcon>
+              <KeyRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>修改密码</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={runAndClose(onExport)}>
+            <ListItemIcon>
+              <DownloadRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>导出数据（JSON）</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={runAndClose(onLogout)}>
+            <ListItemIcon>
+              <LogoutRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>退出登录</ListItemText>
+          </MenuItem>
+        </Menu>
+      </Toolbar>
+    </AppBar>
   );
 }

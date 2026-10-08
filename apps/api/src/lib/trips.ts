@@ -152,7 +152,11 @@ export function serializeTrip(row: TripRecord): TripDto {
   };
 }
 
-/** 导入去重键：同一天、同一节点链、同一总里程视为重复。 */
-export function tripDedupeKey(date: string, nodes: string[], totalKm: number | null): string {
-  return `${date}|${nodes.join("\u0001")}|${totalKm === null ? "" : totalKm}`;
+/**
+ * 导入去重键：同一天 + 同一节点链即视为同一条记录（**不含总里程**）。
+ * 早前的实现把 totalKm 计入键，导致「同链一边有里程、一边没有」双双入库，
+ * 并让「常用路线」出现同一路线两条（其中一条显示「未填里程」）。
+ */
+export function tripDedupeKey(date: string, nodes: string[]): string {
+  return `${date}|${nodes.join("\u0001")}`;
 }

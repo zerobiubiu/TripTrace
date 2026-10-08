@@ -104,14 +104,12 @@ tripRoutes.post("/trips/bulk", ...authedHandlers, async (c) => {
   }
 
   const existing = await store.listTripsInRange(db, userId, firstDate, lastDate);
-  const seen = new Set(
-    existing.map((row) => tripDedupeKey(row.date, JSON.parse(row.nodes) as string[], row.totalKm)),
-  );
+  const seen = new Set(existing.map((row) => tripDedupeKey(row.date, JSON.parse(row.nodes) as string[])));
 
   const rows: ReturnType<typeof tripRowFromInput>[] = [];
   let skipped = 0;
   for (const input of inputs) {
-    const key = tripDedupeKey(input.date, input.nodes, input.totalKm);
+    const key = tripDedupeKey(input.date, input.nodes);
     if (seen.has(key)) {
       skipped += 1;
       continue;

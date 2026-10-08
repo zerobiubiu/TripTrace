@@ -7,3 +7,9 @@ worker-configuration.d.ts
 
 # 通过 skills CLI 安装的第三方技能（工具产物，可重新安装，不入库）
 .agents/skills/
+
+# impeccable 设计技能：会话数据、审查报告、本地私有配置不入库（config.json 入库）
+**/.impeccable/live/
+**/.impeccable/critique/
+**/.impeccable/hook.cache.json
+**/.impeccable/*.local.json

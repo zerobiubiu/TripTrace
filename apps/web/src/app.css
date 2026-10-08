@@ -1,0 +1,70 @@
+/**
+ * 布局专用样式：只负责「不受主题控制」的结构与安全区，
+ * 颜色/字体/间距/圆角一律走 MUI 主题（theme.ts），避免两套设计系统。
+ * 刻意不使用 color-mix / dvh / backdrop-filter，兼容地板与 PRODUCT.md 修订后的基线一致。
+ */
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+  overflow-wrap: break-word;
+}
+
+/* 移动端：底部固定导航；内容为其预留高度（含安全区） */
+.tt-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.tt-main {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+.tt-footer {
+  text-align: center;
+}
+
+/* 屏幕阅读器专用：视觉隐藏但仍在无障碍树中（用于视图级标题，保证 h1→h2→h3 层级完整） */
+.tt-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 填报页：手机单列；宽屏双列 */
+.tt-entry-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .tt-main {
+    padding-bottom: 16px;
+  }
+}
+
+@media (min-width: 1180px) {
+  .tt-entry-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}

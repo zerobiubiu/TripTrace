@@ -24,6 +24,24 @@ export function parseKmInput(text: string): number | null {
   return Math.round(value * 100) / 100;
 }
 
+/**
+ * 把「留空」与「非法」分开：
+ * 留空 = value null / invalid false（表示暂不填）；非法 = invalid true（要就地报错，不能静默丢弃）。
+ */
+export function kmState(text: string): { value: number | null; invalid: boolean } {
+  const raw = text.trim();
+  if (!raw) return { value: null, invalid: false };
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0 || value > 100000) return { value: null, invalid: true };
+  return { value: Math.round(value * 100) / 100, invalid: false };
+}
+
+/** 给用户看的里程文案：空值说「未填里程」，不要说成「— 公里」。 */
+export function formatKmText(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "未填里程";
+  return `${formatKm(value)} 公里`;
+}
+
 export function formatKm(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   const rounded = Math.round(value * 100) / 100;

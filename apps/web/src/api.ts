@@ -1,4 +1,4 @@
-/** 与 Worker API 的交互封装：统一错误对象（message / code / status）。 */
+/** 与 Worker API 的交互封装：统一错误对象（message / code / status），并把网络故障与业务错误分开。 */
 
 import type { MeResponse, Trip, TripPayload, User } from "./types";
 
@@ -7,15 +7,33 @@ export interface ApiError extends Error {
   status?: number;
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const response = await fetch(path, {
-    method,
-    credentials: "same-origin",
-    headers: body === undefined ? undefined : { "content-type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+/** 网络层失败（断网、DNS、连接被中断）对用户的说法，不再暴露 `Failed to fetch`。 */
+const NETWORK_MESSAGE = "网络不可用，请检查连接后重试";
 
-  const text = await response.text();
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method,
+      credentials: "same-origin",
+      headers: body === undefined ? undefined : { "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    const error = new Error(NETWORK_MESSAGE) as ApiError;
+    error.code = "network_error";
+    throw error;
+  }
+
+  let text = "";
+  try {
+    text = await response.text();
+  } catch {
+    const error = new Error(NETWORK_MESSAGE) as ApiError;
+    error.code = "network_error";
+    throw error;
+  }
+
   let payload: unknown = null;
   if (text) {
     try {
@@ -34,6 +52,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
 
   return payload as T;
+}
+
+/** 只有 401 才代表会话失效；网络故障与其它错误都不能把用户当成「被登出」。 */
+export function isUnauthorized(error: unknown): boolean {
+  return (error as ApiError | null)?.status === 401;
+}
+
+export function isNetworkFailure(error: unknown): boolean {
+  return (error as ApiError | null)?.code === "network_error";
 }
 
 export const api = {

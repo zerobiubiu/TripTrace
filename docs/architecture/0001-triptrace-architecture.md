@@ -73,7 +73,7 @@ bun run dev:web   # vite（5173，代理 /api → 8787，保持同源语义）
 | POST | `/api/trips` | 是 | 新建，返回 `{trip}` |
 | PUT | `/api/trips/:id` | 是 | 修改（校验归属），返回更新后的 `{trip}` |
 | DELETE | `/api/trips/:id` | 是 | 删除（校验归属） |
-| POST | `/api/trips/bulk` | 是 | 批量导入（≤500 条），按 `日期+节点链+总里程` 去重 |
+| POST | `/api/trips/bulk` | 是 | 批量导入（≤500 条），按 `日期+节点链` 去重（总里程不参与，避免同链不同里程重复入库） |
 
 中间件链：`securityHeaders` →（`/api/*`）`attachDb` → 路由；受保护路由逐条挂 `...authedHandlers`（`requireSession` + `refreshSessionCookie`）。写操作另做 CSRF 防护：`Sec-Fetch-Site: cross-site` 直接拒绝；带 `Origin` 时要求与请求主机一致，或命中 `ALLOWED_ORIGINS` 白名单（本地开发/分域部署用）。路径存在但方法不匹配时返回 404 JSON（Hono `notFound`）。
 
@@ -90,17 +90,18 @@ bun run dev:web   # vite（5173，代理 /api → 8787，保持同源语义）
 
 ```text
 apps/web/src/
-├── main.tsx / App.tsx        # 挂载、会话与数据编排、标签页路由
+├── main.tsx / App.tsx        # 挂载（ThemeProvider + CssBaseline）、会话与数据编排、标签页路由
 ├── api.ts / types.ts         # API 封装（同源 /api）、类型入口（再导出契约包）
+├── theme.ts / app.css        # MUI 主题与设计令牌（明暗自适应）；app.css 仅全局基线
 ├── lib/format.ts             # 日期与里程格式化
 ├── lib/suggest.ts            # 建议引擎（纯函数）
 ├── lib/importText.ts         # 历史文本解析器
 ├── lib/entry.ts              # 表单纯函数逻辑（节点链、分段、总里程自动/手动）
+├── lib/draft.ts              # 草稿持久化（localStorage，按用户隔离；登录与启动两条路径恢复）
 ├── lib/tripList.ts           # 本地列表更新
 ├── lib/version.ts            # 构建期注入的版本号
-├── components/               # TopBar / NavTabs / Toasts / PasswordDialog / NodeSuggestionInput
-├── views/                    # AuthScreen / EntryView / RecordsView / StatsView / ImportView
-└── styles.css                # 设计令牌 + 组件样式 + 响应式媒体查询
+├── components/               # TopBar / NavTabs / Toasts / PasswordDialog（全部 MUI 组件）
+└── views/                    # AuthScreen / EntryView / RecordsView / StatsView / ImportView（Records/Stats/Import 懒加载）
 ```
 
 建议引擎（登录后一次性拉取行程数组，`buildIndex` 建索引）：节点名按次数 + 最近使用排序（前缀优先）；分段里程取同方向最常用值，无同方向时用反方向并标注「反向」；节点链完全一致时提示「历史路线」（可一键沿用并自动补齐空白分段）；总里程默认按分段自动合计，手改后转手动并提示差额。
@@ -109,11 +110,11 @@ apps/web/src/
 
 | 断点 | 布局 |
 | --- | --- |
-| 默认（手机） | 单列；顶部工具栏 + **底部固定导航**（4 项，安全区适配）；触摸目标 ≥ 42px |
+| 默认（手机） | 单列；顶部工具栏 + **底部固定导航**（4 项，安全区适配）；触摸目标 ≥ 44px |
 | ≥ 900px | 左侧竖排导航 + 内容区；卡片密度提高 |
 | ≥ 1180px | 填报/导入双栏；汇总两列（年度汇总跨列） |
 
-CSP 由 `apps/web/public/_headers` 下发（`default-src 'none'`；`script-src 'self'` 另放行 Cloudflare Insights 信标；`connect-src 'self' https://cloudflareinsights.com`），因此前端不能使用内联脚本/样式（React 的 `style` 属性是 CSSOM 赋值，可用）。Worker 对 `/api/*` 的响应再补一次同源安全头。
+CSP 由 `apps/web/public/_headers` 下发（`default-src 'none'`；`script-src 'self'` 另放行 Cloudflare Insights 信标；`style-src 'self' 'unsafe-inline'` 是 MUI/emotion **运行时注入样式**的必要代价——静态托管无法按请求下发 nonce，应用也无用户可控 HTML；`connect-src 'self' https://cloudflareinsights.com`），因此前端不能使用内联脚本。注意 `_headers` **不支持注释行**，写注释会让整份规则解析失败（可在 `wrangler dev` 上验证头部实际生效）。Worker 对 `/api/*` 的响应再补一次同源安全头，其 `style-src` 保持严格（API 不承载文档）。
 
 ## 8. 部署与运维
 
@@ -140,7 +141,8 @@ bun run db:migrate:local|remote
 
 ## 9. 已知限制与设计取舍
 
-- 前端产物单包 257 kB（gzip ≈ 80 kB，含 React）；导入/汇总视图可按需懒加载。
+- 前端产物：主包 458 kB（gzip 141 kB，含 React + MUI）；记录/汇总/导入视图已按需懒加载分块（3.7 / 9.2 / 18.7 kB）。
+- 设计系统为 MUI v9 + emotion（0.3.0 起）：前端文档的 CSP 必须放行 `style-src 'unsafe-inline'`；`vite preview` 不解析 `_headers`，头部与 CSP 只能在 `wrangler dev` 或生产上验证。
 - 行程列表一次性拉全量（个人量级：数年数百条）；数据量到数千条以上需要加范围查询与分页。
 - 无密码找回：以管理员身份在 D1 侧重置（见 troubleshooting/0001）。
 - 无离线写入：断网只能读已加载页面，不能提交（无 Service Worker/本地队列）。

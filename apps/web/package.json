@@ -10,6 +10,10 @@
     "deploy": "vite build && wrangler pages deploy dist --project-name triptrace-web --branch main"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.4.0",
+    "@mui/material": "9",
     "@triptrace/contracts": "workspace:*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
