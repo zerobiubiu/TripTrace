@@ -1,24 +1,38 @@
 {
   "name": "triptrace",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "途迹 TripTrace —— 出差行程节点与里程的填报、建议与统计（Cloudflare Workers + D1 + KV）",
   "type": "module",
+  "description": "途迹 TripTrace —— 出差行程节点与里程的填报、建议与统计（Workers + Hono + Drizzle + React）",
   "scripts": {
-    "dev": "wrangler dev",
-    "types": "wrangler types",
-    "check": "wrangler types && node scripts/check-version.mjs && tsc --noEmit",
-    "build": "wrangler deploy --dry-run --outdir dist",
-    "deploy": "wrangler deploy",
+    "dev": "vite",
+    "typecheck": "wrangler types --env-interface CloudflareBindings && tsc -p tsconfig.worker.json --noEmit && tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "check": "bun run typecheck && bun scripts/check-version.mjs",
+    "build": "bun run check && vite build",
+    "preview": "bun run build && vite preview",
+    "deploy": "bun run build && wrangler deploy",
+    "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply triptrace-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply triptrace-db --remote"
   },
-  "devDependencies": {
-    "typescript": "^5",
-    "wrangler": "^4"
+  "trustedDependencies": [
+    "esbuild",
+    "workerd"
+  ],
+  "dependencies": {
+    "drizzle-orm": "^0.45.3",
+    "hono": "^4.13.13",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
-  "allowScripts": {
-    "esbuild@0.28.1": true,
-    "workerd@1.20261006.1": true
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.63.0",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3"
   }
 }

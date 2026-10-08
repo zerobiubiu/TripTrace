@@ -6,8 +6,9 @@
 
 | 目录 | 文档 | 类型 | 状态 | 说明 |
 | --- | --- | --- | --- | --- |
-| `architecture/` | [0001-triptrace-architecture.md](architecture/0001-triptrace-architecture.md) | 架构说明 | 已执行 | 组件、数据模型、API 契约、鉴权与会话设计、部署资源与命令 |
+| `architecture/` | [0001-triptrace-architecture.md](architecture/0001-triptrace-architecture.md) | 架构说明 | 已执行 | 技术栈（bun/Vite/Hono/Drizzle/React）、数据模型、API 契约、鉴权与会话、响应式布局、部署与迁移流程 |
 | `changes/` | [0001-triptrace-mvp.md](changes/0001-triptrace-mvp.md) | 变更记录 | 已执行 | 首个可用版本（0.1.0）：背景、方案、实施清单、验证记录 |
+| `changes/` | [0002-stack-refactor.md](changes/0002-stack-refactor.md) | 变更记录 | 已执行 | 技术栈重构（0.2.0）：bun + Hono + Drizzle + React、移动优先响应式布局 |
 | `troubleshooting/` | [0001-auth-and-session-ops.md](troubleshooting/0001-auth-and-session-ops.md) | 排查手册 | 参考 | PBKDF2 迭代上限与 CPU 额度取舍；手动删用户后的会话缓存清理步骤 |
 
 阅读顺序建议：先 `architecture/` 了解全貌，再看 `changes/` 了解本次做了什么、怎么验证的，遇到运维问题查 `troubleshooting/`。

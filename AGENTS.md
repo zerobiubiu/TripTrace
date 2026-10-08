@@ -8,16 +8,23 @@
 
 ## Cloudflare 与部署
 
-- 本项目有 `wrangler.jsonc`，Cloudflare 操作一律用**项目本地 Wrangler**（`npx wrangler` 或 `npm run` 脚本），不用 cf CLI。
+- 本项目有 `wrangler.jsonc`，Cloudflare 操作一律用 **bun 全局安装的 wrangler**（`bun add -g wrangler`，当前 4.148.0）；wrangler 不列入项目依赖，`@cloudflare/vite-plugin` 内部自带一份锁定版本仅用于构建。
 - 资源固定：Worker `triptrace`（https://triptrace.1731865922.workers.dev）、D1 `triptrace-db`（`52a9d143-2cb4-4888-b158-4dfb36adb6c4`）、KV `triptrace-sessions`（`aa2cda7e62da49c7bb8449ec6150d888`）。改绑定必须同步 `wrangler.jsonc` 并重新生成类型。
-- 部署前先 `npm run check`；线上变更后必须做一次线上冒烟（注册/登录/行程读写/登出）。
+- 改完代码的部署链路：`bun run check` → `bun run build` → `bun run deploy`（部署会使用构建产物里的 `dist/triptrace/wrangler.json`）；线上变更后必须做一次线上冒烟。
 - 密钥（如 `SIGNUP_CODE`）用 `wrangler secret put`，不写进配置或源码。
+
+## 数据库与迁移
+
+- schema 唯一来源是 `src/db/schema.ts`（Drizzle）。改表：`bun run db:generate` 生成时间戳前缀 SQL 到 `migrations/`，再由 `bun run db:migrate:local` / `db:migrate:remote`（wrangler）应用；**不要**使用 `drizzle-kit migrate`。
+- `migrations/meta/` 是 drizzle 的快照与日志，必须入库；`migrations/0001_init.sql` 是已应用的基线，不要改动。
+- 查询统一写在 `src/worker/lib/store.ts`，路由层不直接拼 SQL；批量写入注意 D1 单语句 100 个绑定参数上限（`insertTrips` 已按 8 行分批）。
 
 ## 验证
 
-- 静态检查：`npm run check`（生成绑定类型 → 版本一致性 → `tsc --noEmit`）。
-- 本地运行：`npm run dev`（本地 D1/KV，端口 8787）；迁移：`npm run db:migrate:local` / `npm run db:migrate:remote`。
-- 改了前端或接口，必须用浏览器真实走一遍受影响流程；类型通过不等于功能可用。
+- 静态检查：`bun run check`（生成绑定类型 → 版本一致性 → worker/app/node 三份 tsconfig 类型检查）。
+- 本地：`bun run dev`（Vite + Workers 运行时，5173，本地 D1/KV）；`bun run preview`（构建产物，最接近线上）。
+- 改了前端或接口，必须用浏览器真实走一遍受影响流程；类型通过不等于功能可用（移动端与桌面端各看一次）。
+- 前端受 CSP 约束：`script-src 'self'; style-src 'self'`，不要引入内联脚本/样式（React 的 `style` 属性是 CSSOM 赋值，可用）。
 
 ## Git
 
