@@ -53,6 +53,25 @@
 3. `GET /builds/workers/{tag}/triggers` 核对触发规则（`branch_includes: ["master"]`）；
 4. 推一个空提交触发构建，再从 `GET /builds/{uuid}/logs` 读日志验证；若构建镜像缺少 bun，则改 `build_command` 为 `npm i -g bun`，或在 workflow 里退化用 `npx wrangler deploy`。
 
+### 收尾（2026-10-10 实测：连接已建、命令已改、两次构建暴露并修掉两处真问题）
+
+**连接已完成**：`GET /builds/workers/{tag}` 已返回配置（`auto_build_enabled: true`、`previews_enabled: false`）；trigger `e830790e-e2f7-44a0-bf0d-d2544d5e2257` 的 `branch_includes: ["master"]`；repo connection `72a4b84f-4094-4410-afc0-ab7241a37916`。仪表盘连接时复用了账号里已有的 build token（`6eec3154-…`），未新建。
+
+**把默认命令改成对本仓库正确的命令**（仪表盘默认的 `npx wrangler deploy` 部署不了这个仓库：根目录没有 `wrangler.jsonc`，前端 `dist` 也不会被构建）——`PATCH /builds/triggers/{uuid}` 与 `PATCH /builds/workers/{tag}`，均已复读确认：
+
+- `build_command`：`bun install && bun run build:web`
+- `deploy_command`：`bun --filter @triptrace/api deploy`
+- `build_caching_enabled`：`true`
+
+**两次「推送即构建」的实测（这本身就是需求达成的证据）**：
+
+| # | 现象（构建日志原文） | 根因 | 修法 |
+| --- | --- | --- | --- |
+| 1 | `Detected the following tools from environment: bun@1.2.15` → `error: Unknown lockfile version`（`bun.lock:2:22`）→ `lockfile had changes, but lockfile is frozen` → `Failed: error occurred while installing tools or dependencies` | 构建镜像自带的 bun 1.2.15 读不了本机 bun 1.4.2 写的 `bun.lock`（`lockfileVersion: 2`） | `package.json` 加 `"packageManager": "bun@1.4.2"`；下一次日志即变为 `Installing bun 1.4.2` ✅（**结论：Workers Builds 采纳 `packageManager` 字段**） |
+| 2 | `Success: Build command completed`（前端构建成功，入口 `index-C6l9U9HCD`-类产物 641.19 kB 与本地一致）→ `/usr/bin/bash: line 1: wrangler: command not found` → `Exited with code 127` | **`wrangler` 从来不是本仓库的依赖**：本机一直靠全局安装才能跑，CI 里没有——照 README 克隆的人同样无法部署 | 钉成 `@triptrace/api` 的 devDependency（`wrangler@^4.148.0`）并 `bun install` 更新锁文件 |
+
+第 2 条是**CI 才暴露出来的真实仓库缺陷**（隐藏的全局依赖），按「依赖必须落在仓库里」修掉——这也是开源自建者能用起来的前提。
+
 ## 执行验证记录
 
 **执行环境**：Windows 10（10.0.26300）· bun 1.4.2 · wrangler 4.148.0 · gh CLI（账号 `zerobiubiu`，scope 含 `repo`/`workflow`/`delete_repo`）· Cloudflare MCP（OpenAPI 查询 + 账号 API 调用）。

@@ -17,6 +17,7 @@
     "hono": "^4.13.13"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.11"
+    "drizzle-kit": "^0.31.11",
+    "wrangler": "^4.148.0"
   }
 }
