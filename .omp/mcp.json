@@ -1,6 +1,12 @@
 {
     "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
     "mcpServers": {
+        "aoci": {
+            "_comment": "AOCI-CODE 认知索引 | stdio | 绝对路径二进制；--repo 锁定本仓库（v0.1.0-rc19）",
+            "type": "stdio",
+            "command": "C:/Users/wang-it-think/.local/bin/aoci.exe",
+            "args": ["--repo", "C:/Users/wang-it-think/Desktop/Code/TripTrace", "mcp"]
+        },
         "cloudflare": {
             "_comment": "Cloudflare API MCP（Code Mode）| http | 覆盖整个 Cloudflare API；首次使用触发 OAuth 授权",
             "type": "http",

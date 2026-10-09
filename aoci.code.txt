@@ -1,0 +1,147 @@
+#AOCI-CODE-VOLUME: 1
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/===
+.gitattributes[FC7T]: F:声明全仓库检出统一使用 LF 行尾（text=auto eol=lf），覆盖 Windows 的 autocrlf 改写 | R:- | A:- | S:不能删掉 eol=lf：autocrlf 会改写检出字节，而 AOCI 以原始字节作为基线，整棵树会被判 stale；二进制由 auto 自动识别、不受影响
+.gitignore[FC7T]: F:声明哪些本地产物不入库：依赖、构建产物、wrangler 状态、本机密钥文件、设计技能的会话数据 | R:- | A:- | S:认知资产（aoci.txt / aoci.meta.txt / aoci.code.txt / AGENTS.md）绝不能加进来——被忽略的文件会被 scan 静默跳过，索引建不起来
+AGENTS.md[SG7S]: F:本项目 agent 执行规则（工程结构 / 前端 UI / Cloudflare 与部署 / 数据库 / 验证 / Git / 版本 / 文档），init 追加了 AOCI 认知使用区块 | R:- | A:定义执行规则,AOCI 认知入口 | S:本文件只写执行规则，说明与记录一律进 docs/；aoci:begin 区块由机器追加，不要手改（原内容由 init 备份）
+CHANGELOG.md[SV6S]: F:按语义化版本记录每个已发布版本的用户可见变更，含回退记录 | R:code:package.json | A:- | S:版本号只在被发布程序的行为变更时递增，且必须与 package.json 的 version 及 wrangler APP_VERSION 同步，bun run check 是门禁
+bun.lock[FV5L]: F:bun 工作区的锁文件：记录全部依赖解析结果（前后端与共享包） | R:code:package.json | A:- | S:由 bun 维护，不要手改；包管理统一 bun，不引入 package-lock.json
+package.json[FV8T]: F:仓库根清单：workspaces、脚本（dev / check / build / deploy / db:*）、项目版本的单一事实来源 | R:code:scripts/check-version.mjs,code:apps/api/package.json,code:apps/web/package.json | A:- | S:version 是被发布程序的唯一事实来源，bun run check 会校验它与 wrangler 的 APP_VERSION 一致；纯文档或注释改动不递增版本
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/.omp/===
+mcp.json[FE6T]: F:声明本项目会话可用的 MCP server：cloudflare（http）与 aoci（stdio） | R:- | A:- | S:aoci 项的 command 必须是稳定绝对路径、--repo 必须指向本仓库绝对路径；文件含本机路径，按 AOCI 要求本不应提交（仓库仍跟踪它时忽略规则无效）
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/===
+.wrangler-keys.json[OC3T]: F:一次性 KV 会话缓存键名单（含键名与过期时间），供手工清理线上残留 | R:code:apps/.wrangler-kv-delete.json | A:- | S:运维一次性产物：键名含用户 ID 与 token 哈希，不属于应用数据，不应长期留在仓库
+.wrangler-kv-delete.json[OC3T]: F:待删除的 KV 键名数组，配合 wrangler kv 批量删除使用 | R:code:apps/.wrangler-keys.json | A:- | S:-
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/api/===
+drizzle.config.ts[FD7T]: F:Drizzle-kit 配置：schema 唯一来源 src/db/schema.ts，迁移输出 migrations/ 且用时间戳前缀 | R:code:apps/api/src/db/schema.ts | A:- | S:迁移一律由 wrangler 应用（db:migrate:local / remote），不要用 drizzle-kit migrate；0001_init.sql 是已应用的基线，不要改
+package.json[FV6T]: F:@triptrace/api 包的脚本与依赖：dev / deploy / types / db:generate / db:migrate:local 与 remote | R:code:apps/api/wrangler.jsonc,code:apps/api/drizzle.config.ts | A:- | S:数据库迁移必须走这里的 db:migrate:local 与 remote（wrangler），不要直接用 drizzle-kit migrate
+tsconfig.json[FV6T]: F:api 的 TypeScript 配置：ES2022 + bundler 解析、strict 与 noUncheckedIndexedAccess、paths 指向 contracts 源码 | R:code:packages/contracts/src/index.ts | A:- | S:contracts 通过 paths 直接指向源码（不构建、无运行时耦合）；verbatimModuleSyntax 要求类型导入必须写 import type
+wrangler.jsonc[OV8T]: F:Worker 配置：单部署物（assets 指向 ../web/dist + run_worker_first=/api/*）、D1 与 KV 绑定、自定义域、vars | R:code:apps/api/src/index.ts,code:apps/api/package.json | A:- | S:资源标识写死在这里（Worker triptrace / D1 triptrace-db / KV triptrace-sessions / 自定义域 trips.zerobiubiu.top），改绑定必须同步重新生成类型；APP_VERSION 必须与根 package.json 版本一致
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/api/migrations/===
+0001_init.sql[PD8T]: F:初始化迁移基线：users / sessions / trips 三张表、外键与索引定义 | R:code:apps/api/src/db/schema.ts | A:- | S:不要去掉 ON DELETE CASCADE：D1 默认开启外键约束，删除账号依赖级联清理行程与会话；该迁移已应用，不要修改
+20261009014732_charming_madripoor.sql[PI6T]: F:给 users 增加 disabled_at 列（非空表示账号被管理员禁用） | R:code:apps/api/src/db/schema.ts | A:- | S:-
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/api/migrations/meta/===
+20261008085531_snapshot.json[PD4M]: F:Drizzle 迁移快照第 0 版（与 0001_init.sql 等价），供生成后续迁移做差分 | R:code:apps/api/migrations/meta/_journal.json | A:- | S:-
+20261009014732_snapshot.json[PD4M]: F:Drizzle 迁移快照第 1 版（含 users.disabled_at） | R:code:apps/api/migrations/meta/_journal.json | A:- | S:-
+_journal.json[PD4T]: F:Drizzle 迁移日志：按顺序登记每个迁移 tag 与时间戳，决定应用顺序 | R:code:apps/api/drizzle.config.ts | A:- | S:-
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/api/src/db/===
+schema.ts[PD9T]: F:Drizzle 表定义：users / sessions / trips 的列、外键、索引与派生类型的唯一来源 | R:code:apps/api/migrations/0001_init.sql,code:apps/api/src/lib/store.ts | A:- | S:改表只改这里再 db:generate；trips.legs 存 JSON 数组且必须与 nodes 相邻段对齐；sessions.token_hash 存 sha256(token) 并有唯一约束
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/api/src/===
+env.d.ts[FC7T]: F:向 wrangler types 生成的 CloudflareBindings 声明合并三个运行时可选变量 | R:code:apps/api/src/lib/context.ts,code:apps/api/src/routes/auth.ts | A:- | S:三个变量都必须可选：SIGNUP_CODE 缺省即开放注册，ADMIN_USERNAMES 缺省即无人具备管理员权限，ALLOWED_ORIGINS 缺省即只认同源
+index.ts[EG8T]: F:Worker 入口：装配 Hono（安全头 → /api/* 挂 D1 → 挂 auth / trips / admin 路由）并统一 404 与 onError | R:code:apps/api/src/lib/context.ts,code:apps/api/src/routes/auth.ts,code:apps/api/src/routes/trips.ts,code:apps/api/src/routes/admin.ts | A:装配中间件,挂载路由,统一错误响应 | S:只有 /api 前缀进入 Worker（其余交给 assets 静态资源），所以 notFound 只可能是接口 404；onError 的所有分支都必须套 applySecurityHeaders
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/api/src/lib/===
+auth.ts[SI9M]: F:鉴权核心：口令 PBKDF2 哈希与恒定时间校验、会话签发解析销毁、KV 会话缓存与限流、邀请码、Cookie 策略 | R:code:apps/api/src/lib/crypto.ts,code:apps/api/src/lib/http.ts,code:apps/api/src/lib/store.ts,code:apps/api/src/lib/context.ts | A:校验口令,签发会话,解析会话,销毁会话,会话清理,限流与邀请码 | S:会话以 D1 为准、KV 只是 s:<userId>:<sha256(token)> 缓存且命中即放行，因此登出/改密/禁用必须同时清 KV；Cookie 值格式 v1.<userId>.<token> 与 400 天上限只写在这一处
+context.ts[MI8S]: F:Hono 上下文与中间件：安全响应头、D1 装配、会话与管理員校验、KV 会话缓存键与按前缀清理、Cookie 滚动续期 | R:code:apps/api/src/lib/auth.ts,code:apps/api/src/lib/http.ts,code:apps/api/src/lib/store.ts | A:校验会话,校验管理员,滚动续期,清理用户会话缓存 | S:中间件顺序是约定：securityHeaders → attachDb → requireSession → requireAdmin（requireAdmin 依赖 c.get('user')）；KV 清理必须分页（单页最多 1000 键）
+crypto.ts[KS8T]: F:Web Crypto 封装：base64url、随机令牌、SHA-256、PBKDF2、恒定时间比较 | R:code:apps/api/src/lib/auth.ts | A:- | S:workerd 对 PBKDF2 迭代有 10 万次硬上限，clampIterations 会夹紧到 1 万–10 万，超限直接抛错；恒定时间比较优先 timingSafeEqual，缺失时退化为逐字节异或
+db.ts[PD6T]: F:用 D1 绑定创建带 schema 的 Drizzle 客户端并导出 Db 类型 | R:code:apps/api/src/db/schema.ts,code:apps/api/src/lib/context.ts | A:- | S:-
+http.ts[CG8S]: F:与框架无关的 HTTP 基础：HttpError、Cookie 常量、同源校验、JSON 体解析、安全响应头 | R:code:apps/api/src/lib/context.ts,code:apps/api/src/routes/auth.ts,code:apps/api/src/routes/trips.ts | A:校验同源,解析请求体,取客户端 IP,套安全头 | S:写操作的 CSRF 第二道闸：Sec-Fetch-Site: cross-site 一律 403，Origin 必须与请求主机一致或落在 ALLOWED_ORIGINS，无 Origin 的非浏览器客户端放行；tt_session 与 400 天上限在此定义
+store.ts[PD9M]: F:数据访问层：用户 / 会话 / 行程的 Drizzle 查询与批量写入，路由层不直接拼查询 | R:code:apps/api/src/db/schema.ts,code:apps/api/src/routes/trips.ts,code:apps/api/src/routes/admin.ts,code:apps/api/src/routes/auth.ts | A:查用户,查会话,写行程,批量插行程,统计聚合,级联删除 | S:D1 单语句最多 100 个绑定参数，trips 一行 10 列 → 批量插入必须按 8 行一批（TRIP_INSERT_CHUNK），否则整批写入失败
+trips.ts[DB8S]: F:行程数据的解析、校验与序列化：日期 / 节点 / 里程 / 备注的边界与去重键 | R:code:apps/api/src/routes/trips.ts,code:apps/api/src/db/schema.ts | A:解析行程输入,派生行程行,序列化 DTO,算去重键 | S:日期必须严格 YYYY-MM-DD 且回读一致；节点最多 40 个、单名 32 字；里程 0–100000 保留两位；legs 数量必须等于节点数−1；总里程为空而分段齐全时按分段求和补齐
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/api/src/routes/===
+admin.ts[EI8S]: F:管理员接口：用户列表、启用/禁用、重置密码、删除账号（全部要求管理员身份） | R:code:apps/api/src/lib/context.ts,code:apps/api/src/lib/store.ts,code:apps/api/src/lib/auth.ts | A:查用户列表,启停账号,重置密码,删除账号 | S:管理员不能对自己执行禁用/删除（400）；禁用、重置密码、删除都必须同时清 D1 会话与 KV 缓存，否则缓存命中会让旧会话继续可用
+auth.ts[EI9M]: F:鉴权接口：/me、注册、登录、退出、改密、显示名、设备会话列表与逐个登出，含登录与注册限流 | R:code:apps/api/src/lib/auth.ts,code:apps/api/src/lib/context.ts,code:apps/api/src/lib/http.ts | A:注册,登录,登出,改密,改显示名,会话管理 | S:登录限流按 IP（30/15min）与用户名（10/15min）双口径、注册按 IP（10/h）；改显示名必须清 KV（缓存里存着旧显示名）；登出其他设备只保留当前会话
+trips.ts[EB8S]: F:行程接口：列表、新建、修改、删除、批量导入（全部需要登录且写操作校验同源） | R:code:apps/api/src/lib/trips.ts,code:apps/api/src/lib/store.ts,code:apps/api/src/lib/context.ts | A:列出行程,新建,修改,删除,批量导入去重 | S:批量导入按（日期+节点链）去重且单次最多 500 条；修改与删除先按（userId, id）查存在性，跨用户一律 404
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/web/.impeccable/===
+config.json[XQ4T]: F:impeccable 设计技能的运行默认：buildPath=code（不走生成式 comp 路径） | R:code:apps/web/DESIGN.md | A:- | S:-
+design.json[XQ3S]: F:impeccable 设计系统的机器侧车：每个令牌的 canonical 与 tonalRamp、组件 CSS 摘录（由 document 生成） | R:code:apps/web/DESIGN.md | A:- | S:-
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/web/===
+DESIGN.md[SU8M]: F:途迹的设计系统：令牌 frontmatter（色/字体/圆角/间距）+ 概览 / 色彩 / 排版 / 布局 / 深度 / 形状 / 组件 / Do-Don't 八节 | R:code:apps/web/src/theme.ts,code:apps/web/PRODUCT.md | A:- | S:视觉规范以本文件为准：改主题必须同步这里与 .impeccable/design.json；形状令牌（radius）与 The Reading-Not-Pill / One Voice 等命名规则是强约束，不要绕过
+PRODUCT.md[SG7T]: F:产品上下文：用户与使用场景、产品目的与定位、能力与约束清单、品牌承诺、可访问性硬约束 | R:code:apps/web/DESIGN.md | A:- | S:体积要量「首屏闭包」而不是入口 chunk（Rollup 会把共享块在入口与懒加载之间归并）；已登记但未确认的方向（出差台账字段）不要自行发明
+index.html[EU5T]: F:SPA 的 HTML 外壳：中文 lang、viewport-fit、明暗两套 theme-color、图标与 manifest 引用、挂载 #root | R:code:apps/web/public/manifest.webmanifest,code:apps/web/public/icon.svg | A:- | S:-
+package.json[FV6T]: F:@triptrace/web 的依赖与脚本：dev / build / preview；MUI v9 + x-date-pickers + dnd-kit + dayjs | R:code:apps/web/src/main.tsx | A:- | S:依赖口径不要降级：MUI v9 决定浏览器地板（iOS17 / Chrome117），dnd-kit 是节点拖动的表现层依赖；包管理统一用 bun，不引入 npm 锁文件
+tsconfig.json[FV6T]: F:前端 TS 配置：DOM 库、react-jsx、strict 与 noUncheckedIndexedAccess、paths 指向 contracts 源码 | R:code:packages/contracts/src/index.ts | A:- | S:-
+tsconfig.node.json[FV4T]: F:只给 vite.config.ts 用的 TS 配置（node 类型，独立于前端源码编译） | R:code:apps/web/vite.config.ts | A:- | S:-
+vite.config.ts[FV7T]: F:Vite 配置：React 插件、构建期 define（版本号与正式域名）、显式 target（与浏览器地板一致）、dev 的 /api 代理 | R:code:apps/web/package.json,code:apps/web/src/main.tsx | A:- | S:target 必须显式写出（默认值变化会悄悄抬高兼容地板）；dev 代理保持 changeOrigin:false 以维持同源语义
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/web/public/===
+_headers[OS8T]: F:静态资源响应头规则：/assets/* 长缓存不可变；全站安全头与严格 CSP | R:code:apps/web/index.html | A:- | S:本文件不支持注释行（写注释会让整份规则解析失败）；CSP 必须放行 style-src 'unsafe-inline'（MUI/emotion 运行时注入样式），script-src 不允许内联
+icon.svg[ZU4T]: F:品牌图标：渐变蓝到青的「路线 + 两个节点」SVG，同时用作 favicon 与 apple-touch-icon | R:code:apps/web/public/manifest.webmanifest | A:- | S:-
+manifest.webmanifest[FU4T]: F:Web App Manifest：名称、standalone 显示模式、主题色与图标声明 | R:code:apps/web/public/icon.svg | A:- | S:-
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/web/src/===
+App.tsx[AG9L]: F:前端应用外壳：会话与数据编排、标签页路由、草稿恢复、快捷路线载入、跨页查询条件下钻、删除确认与提示 | R:code:apps/web/src/lib/draft.ts,code:apps/web/src/lib/entry.ts,code:apps/web/src/lib/query.ts,code:apps/web/src/components/TopBar.tsx | A:加载会话与行程,标签页路由,草稿恢复,下钻记录页,删除确认 | S:启动阶段只区分「网络失败」与「已登出」，绝不把网络故障渲染成登录页；记录页查询条件由 App 持有（汇总页下钻要带着条件跳过去）
+api.ts[CN8S]: F:与 Worker API 的封装：统一错误对象（code/status）、网络故障与业务错误分离、全部端点清单 | R:code:packages/contracts/src/index.ts | A:- | S:只有 401 才算会话失效（isUnauthorized），网络故障不能把用户当成被登出；网络层错误统一成「网络不可用」文案，不暴露 Failed to fetch
+app.css[CG5T]: F:全局基线样式：html/body/#root 高度、移动端底部安全区预留、sr-only 工具类、填报页断点栅格 | R:code:apps/web/src/theme.ts | A:- | S:这里只放不受主题控制的结构与安全区；颜色/字体/间距/圆角一律走 MUI 主题，避免出现两套设计系统
+main.tsx[EU7T]: F:前端挂载入口：LocalizationProvider（dayjs + 中文）加 ThemeProvider（noSsr）加 CssBaseline，并把旧 workers.dev 地址跳到正式域名 | R:code:apps/web/src/App.tsx,code:apps/web/src/theme.ts | A:- | S:ThemeProvider 必须 noSsr（避免亮暗双渲染与刷新闪烁）；只有确定是旧主机名时才跳转，且跳转失败要照常渲染
+theme.ts[CU9M]: F:MUI 主题：明暗两套令牌（带对比度实测注释）、排版档位、形状令牌 radius、组件默认值与连续曲率增强 | R:code:apps/web/DESIGN.md,code:apps/web/src/app.css | A:- | S:组件里不写裸色值；sx 里的 borderRadius 数字会被乘上 shape.borderRadius（视图要用字符串令牌）；浮层圆角逐组件声明，不要广谱覆盖 MuiPaper
+types.ts[CG6T]: F:前端类型入口：从 contracts 复用 API 契约（import type）并补充本地 ToastMessage | R:code:packages/contracts/src/index.ts | A:- | S:-
+vite-env.d.ts[FV5T]: F:Vite 注入的两个构建期常量声明：__APP_VERSION__ 与 __CANONICAL_URL__ | R:code:apps/web/vite.config.ts | A:- | S:-
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/web/src/components/===
+DateField.tsx[CU6T]: F:只读日期字段（只选不敲）：整块可点打开选择器、值居中、等宽数字，弹层字号抬到 14px 下限 | R:code:apps/web/src/views/EntryView.tsx,code:apps/web/src/components/RangeControl.tsx | A:- | S:填报页与查询条件共用这一个实现；MUI X v9 的值渲染在 .MuiPickersSectionList-root 里而不是 input，字号与数字样式要挂在那层
+NodeNameField.tsx[CU8S]: F:节点名控件：先选后输——选择态只读、点开给候选（不弹软键盘），键盘图标才进输入态；输入时模糊匹配并防遮挡 | R:code:apps/web/src/components/RouteEditor.tsx,code:apps/web/src/lib/suggest.ts | A:选择态列候选,切换输入态,弹层防遮挡 | S:选择态必须传空查询（要的是全量常用榜），输入态才按输入值过滤；弹层高度上限跟视口走（min(264px,34vh)），否则键盘弹出后的矮视口里列表会顶出屏幕
+PasswordDialog.tsx[CI6S]: F:修改密码对话框：当前/新/确认三段校验、错误就地显示、隐藏用户名框以配合密码管理器 | R:code:apps/web/src/api.ts | A:- | S:错误必须显示在对话框内（不能被模态遮罩压住）；打开时焦点进入、Esc 关闭，busy 时不允许关闭
+PillGroup.tsx[CU6T]: F:胶囊单选组：Chip 版单选（aria-pressed + role=group、可换行），选中＝软底加主色描边 | R:code:apps/web/src/views/StatsView.tsx,code:apps/web/src/views/RecordsView.tsx | A:- | S:未选态用 text.secondary 描边（满足控件边界 3:1）；不要退化成原生 select
+RangeControl.tsx[CU7T]: F:时间范围控件：快捷档（本月 / 本年 / 去年 / 全部 / 自定义）加自定义起止日期字段，汇总页与记录页共用 | R:code:apps/web/src/lib/query.ts,code:apps/web/src/components/PillGroup.tsx,code:apps/web/src/components/DateField.tsx | A:- | S:两页必须共用这一个实现以保证口径同源；自定义档要就地展开日期字段，不要弹对话框
+RouteEditor.tsx[CU9M]: F:路线编辑区：节点与分段里程一体（每行节点加其下到下一站的里程），手柄拖动排序、键盘可排、拖动浮层与让位反馈 | R:code:apps/web/src/components/NodeNameField.tsx,code:apps/web/src/lib/entry.ts | A:行内改名,拖动排序,分段里程编辑,增删节点 | S:手柄是唯一拖动激活器（输入框内编辑不得触发拖动）；分段条按节点相邻对渲染、里程归属由 legsForNodes 决定，两者一旦不一致就是 bug
+Toasts.tsx[CU5T]: F:轻提示：一次只显示最新一条，错误用 Alert（role=alert）并可带一个撤销动作 | R:code:apps/web/src/App.tsx | A:- | S:位置要抬到移动端底部保存条之上（bottom 96px 加安全区），否则会被保存条压住
+TopBar.tsx[CU8S]: F:标题栏：品牌加四个分组 Tab（填报 / 记录 / 汇总 / 导入）加账号菜单（账号 / 管理 / 改密 / 导出 / 退出） | R:code:apps/web/src/App.tsx | A:分组切换,账号菜单 | S:分组导航内联在标题栏（不要另起侧栏或底部导航）；四个分组是产品确认过的收敛结果，不要私自增删
+TripCard.tsx[CB8S]: F:行程卡（填报页与记录页共用）：full 卡片与 compact 行两种密度，里程读数原子 MileageReading | R:code:apps/web/src/views/RecordsView.tsx,code:apps/web/src/views/EntryView.tsx | A:密度渲染,里程读数 | S:行程条目只有这一处实现（视图里不得再内联写一份）；里程读数是文字（墨色 + 650 + 等宽），不是胶囊
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/web/src/lib/===
+draft.ts[CD7T]: F:表单草稿的本地持久化（按用户隔离）：空表单不落盘、读取时校验形状、恢复与启动解耦 | R:code:apps/web/src/lib/entry.ts,code:apps/web/src/App.tsx | A:- | S:磁盘格式是「名字数组」而不是内存里的 {id,name}（id 不落盘，旧草稿无需迁移）；隐私模式或配额满时草稿失效不得影响主流程
+entry.ts[DB9M]: F:填报表单的纯函数逻辑：节点链加分段里程（历史默认值推导、结构变化重建、总里程合计、保存前校验） | R:code:apps/web/src/lib/suggest.ts,code:apps/web/src/lib/format.ts | A:增删改节点,重排节点,重建分段,合计总里程,保存前校验 | S:不变量 legs.length === max(0, nodes.length-1)，结构变化一律走 legsForNodes；节点认 id 不认下标；里程只跟着相邻端点对（不分方向）走，新出现的相邻对留空后再按历史补齐
+format.ts[CG6S]: F:展示与日期格式工具：pad2 与 todayIso 与 shiftDate、里程解析与格式化、节点归一化、链路文本、日期与星期文案 | R:code:apps/web/src/lib/entry.ts | A:- | S:kmState 把「留空」与「非法」分开（留空表示暂不填、非法要就地报错）；空里程文案是「未填里程」，不要写成「— 公里」
+importText.ts[DB7S]: F:历史文本解析器：把「日期加节点链加里程」的手写记录解析成可导入行程（区间展开、模板行、小计行忽略、分隔线清模板） | R:code:apps/web/src/lib/sampleText.ts,code:apps/web/src/views/ImportView.tsx | A:解析历史文本,展开日期区间,生成导入条目 | S:解析规则必须与用户既有手写习惯对齐（9.28 / 7.1-7.2 / 单次25km / 203 公里 / ------）；改解析器前先用 sampleText 的真实素材回归
+query.ts[DA9L]: F:查询内核：时间范围、筛选（关键词 / 缺里程 / 下钻约束）、读数与四维聚合（月份 / 路线 / 分段 / 节点）、排序与下钻条件构造 | R:code:apps/web/src/lib/suggest.ts,code:apps/web/src/components/RangeControl.tsx | A:解析时间范围,筛选行程,四维聚合,构造下钻条件 | S:汇总页与记录页必须共用这一份口径（同范围下条数与合计里程要对得上）；分段键是无序对（家与圣润双向合成一条），与 suggest.ts 的按方向键是两回事，不要混用
+sampleText.ts[ZB3T]: F:「导入」页的示例文本：用户原有的手写记录原文，供解析与呈现使用真实素材 | R:code:apps/web/src/lib/importText.ts | A:- | S:-
+suggest.ts[DA9M]: F:建议引擎：节点名补全（按次数与最近使用）、分段里程建议（同方向优先、反方向推断）、整链匹配与最近路线、年度统计 | R:code:apps/web/src/lib/entry.ts,code:apps/web/src/views/EntryView.tsx | A:建索引,补全节点名,推断分段里程,匹配整链 | S:分段里程默认值「已有手填值不覆盖」；正方向没有时按反方向推断（同一条路往返同值）；nameKey 与 routeKey 由本模块导出给查询内核复用，保证两边键一致
+tripList.ts[CD5T]: F:行程数组的本地更新辅助（保存或删除后就地更新，避免整表重拉） | R:code:apps/web/src/App.tsx | A:- | S:-
+version.ts[FV2T]: F:应用版本常量（构建时由 Vite define 注入，来源是根 package.json） | R:code:package.json | A:- | S:-
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/apps/web/src/views/===
+AccountView.tsx[AU6M]: F:「账号」页：改显示名、查看登录设备与逐个登出、进入改密码 | R:code:apps/web/src/api.ts,code:apps/web/src/components/PasswordDialog.tsx | A:改显示名,列设备会话,登出指定设备 | S:401 要通知主进程跳回登录；不传 onSessionInvalid 也必须能独立渲染而不报错
+AdminView.tsx[AI7L]: F:「管理」页：用户列表（行程 / 里程 / 会话聚合）、重置密码、启用禁用、删除账号；桌面表格与移动列表两种形态 | R:code:apps/web/src/api.ts,code:apps/web/src/lib/format.ts | A:列用户,重置密码,启停账号,删除账号 | S:同一份数据两种形态（桌面 Table / 移动列表）；删除等破坏性操作必须二次确认
+AuthScreen.tsx[EI8S]: F:登录与注册屏：同一表单切换两种模式、邀请码字段按服务端开关显示、启动失败给可重试错误屏 | R:code:apps/web/src/api.ts | A:登录,注册 | S:绝不把网络故障渲染成登录页（启动失败要给可重试的错误屏）；邀请码是否必填由 /api/me 的 signupCodeRequired 决定
+EntryView.tsx[AU9M]: F:「填报」页：日期与当日小结、路线编辑区（节点与分段一体、先选后输、拖动排序）、总里程与备注、保存条、常用路线与当日记录 | R:code:apps/web/src/components/RouteEditor.tsx,code:apps/web/src/components/TripCard.tsx,code:apps/web/src/lib/entry.ts,code:apps/web/src/components/DateField.tsx | A:维护表单,保存行程,载入编辑,快捷填路线 | S:保存前拦空节点名与未填分段；移动端总里程与保存固定在拇指区（底部条），内容区要预留高度；草稿由 App 统一持久化
+ImportView.tsx[AB6M]: F:「导入」页：粘贴历史文本、解析预览（可勾选）、按日期与节点链去重后批量入库 | R:code:apps/web/src/lib/importText.ts,code:apps/web/src/lib/sampleText.ts | A:解析文本,预览勾选,批量导入 | S:导入前用 existing 键集合预判重复（同日同链），避免用户白跑一次往返；解析不到记录要明确提示而不是静默
+RecordsView.tsx[AB8M]: F:「记录」页：明细查询（时间范围 / 关键词 / 只看未填里程 / 排序 / 结果摘要与条件胶囊）加按月与日分组或按里程降序榜单 | R:code:apps/web/src/lib/query.ts,code:apps/web/src/components/RangeControl.tsx,code:apps/web/src/components/TripCard.tsx | A:筛选明细,排序切换,清理条件,分页 | S:排序为「里程从高到低」时不再按月与日分组（分组会把排序藏起来）；条目渲染一律走 TripCard
+StatsView.tsx[AA8M]: F:「汇总」页（集中查询）：时间范围、读数带、四维聚合（月份 / 路线 / 分段 / 节点）、排序与前 10 项展开、点行下钻 | R:code:apps/web/src/lib/query.ts,code:apps/web/src/components/RangeControl.tsx,code:apps/web/src/components/PillGroup.tsx | A:选范围,切维度,排序,展开,下钻记录页 | S:读数带只放四个指标（总里程 / 次数 / 天数 / 单次均值），缺里程用可点击的琥珀胶囊单独提示；行读数是文字不是胶囊
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/docs/===
+README.md[SG7T]: F:文档中心：索引（各目录文档清单与状态）、文档规范、读写流程与要求 | R:code:docs/architecture/0001-triptrace-architecture.md | A:- | S:新增文档必须回本文件补索引；每个分类目录各自维护清单
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/docs/architecture/===
+0001-triptrace-architecture.md[SG8S]: F:架构现状：部署拓扑、workspace 结构、数据模型、API 契约、鉴权与会话、前端结构与建议引擎、响应式布局、已知限制 | R:code:apps/api/src/index.ts,code:apps/api/src/db/schema.ts,code:apps/web/src/App.tsx | A:- | S:这是「现状文档」可随系统演进更新；一次性的不可变变更写 docs/changes/；体积口径是首屏闭包而不是入口 chunk
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/docs/changes/===
+0001-triptrace-mvp.md[SG5T]: F:首个可用版本（0.1.0）的变更记录：背景、无框架方案、实施清单与验证记录 | R:code:docs/architecture/0001-triptrace-architecture.md | A:- | S:变更文档定稿后不重写（不可变）；后续变化另建文档并标注替代关系
+0002-stack-refactor.md[SG5T]: F:技术栈重构（0.2.0）：bun 工作区加 Hono 加 Drizzle 加 React，移动优先响应式布局 | R:code:docs/changes/0003-pages-workers-split.md | A:- | S:-
+0003-pages-workers-split.md[SG5T]: F:前后端分离与 Pages 加 Workers 双部署（0.3.0） | R:code:docs/changes/0004-mui-frontend-migration.md | A:- | S:-
+0004-mui-frontend-migration.md[SG5S]: F:前端迁移到 MUI v9（0.3.0）：设计令牌体系与九项审计问题修复 | R:code:apps/web/src/theme.ts | A:- | S:-
+0005-single-worker-topology.md[SG5T]: F:部署拓扑合并为单 Worker（0.4.0）：静态资源与 API 一个部署物、Pages 停用 | R:code:apps/api/wrangler.jsonc | A:- | S:-
+0006-entry-rules-nav-and-picker.md[SG5T]: F:填报规则收紧与界面清理（0.5.0）：分段必填、导航并入标题栏、日期控件与体积变化 | R:code:apps/web/src/lib/entry.ts | A:- | S:-
+0007-user-management.md[SG5T]: F:用户管理（0.5.0）：管理员后台与个人账号自助 | R:code:apps/api/src/routes/admin.ts | A:- | S:-
+0008-design-system-and-polish.md[SG5T]: F:设计系统文档化与 polish 收口（0.5.1）：14px 地板、键盘焦点环、清理重复覆盖 | R:code:apps/web/DESIGN.md | A:- | S:-
+0009-init-adapt-harden.md[SG5S]: F:产品上下文刷新、管理页双形态、会话失效加固、日期只选不敲（0.6.0） | R:code:apps/web/PRODUCT.md | A:- | S:-
+0010-nav-records-nodes-avatar.md[SG5T]: F:0.7.0 的方案与实测记录：分组收敛、记录查询区、节点每段一行、头像；状态是已回退，保留作可复用参考 | R:code:docs/changes/0011-query-center.md | A:- | S:本文件状态是「已回退」：内容不是当前实现，引用前先确认
+0011-query-center.md[SG5T]: F:0.8.0 汇总页升级为查询中心、记录页做明细查询的变更记录（含手算数据集与独立复算证据） | R:code:apps/web/src/lib/query.ts | A:- | S:-
+0012-node-editor-dnd.md[SG5S]: F:0.9.0 节点就地改名与 dnd-kit 拖动排序的变更记录（含不变量修复与实测证据） | R:code:apps/web/src/components/RouteEditor.tsx | A:- | S:-
+0013-shape-language.md[SG5T]: F:0.9.1 统一形状语言与连续曲率增强的变更记录（含支持面与两处级联缺陷） | R:code:apps/web/src/theme.ts | A:- | S:-
+0014-quiet-mileage-reading.md[SG5T]: F:0.9.2 记录页总公里数由胶囊改为读数写法的变更记录 | R:code:apps/web/src/views/RecordsView.tsx | A:- | S:-
+0015-shared-trip-card.md[SG5T]: F:0.9.3 行程卡抽成共用组件的变更记录（含两处实现漂移的取证） | R:code:apps/web/src/components/TripCard.tsx | A:- | S:-
+0016-route-editor.md[SG5T]: F:0.10.0 路线编辑区融合与节点名先选后输的变更记录（含频率口径与里程静默丢失 bug） | R:code:apps/web/src/components/RouteEditor.tsx,code:apps/web/src/components/NodeNameField.tsx | A:- | S:-
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/docs/troubleshooting/===
+0001-auth-and-session-ops.md[SI8T]: F:鉴权与会话运维手册：PBKDF2 迭代上限与 CPU 额度取舍、手动删用户或改密码后清 KV 会话缓存的标准处置 | R:code:apps/api/src/lib/auth.ts,code:apps/api/src/lib/context.ts | A:- | S:直接用 SQL 删用户或改密码不会碰 KV，残留缓存最长活到 TTL（30 天）内 Cookie 仍有效——必须按手册分页列键加 kv bulk delete 清理；删除用户会级联删除其全部行程
+0002-workspace-tooling-gotchas.md[SV7S]: F:工具链坑手册：workspace 拆包后的坏 shim、全局 pnpm vite 抢占、Pages 项目创建与自定义域 DNS、TS7 baseUrl | R:code:package.json | A:- | S:根脚本必须用 bun --filter 在包内执行（否则落到系统 PATH 的全局版本）；node_modules/.bin 里的旧 shim 要先删再 bun install
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/packages/contracts/===
+package.json[FG6T]: F:@triptrace/contracts 的包声明：只导出类型（exports.types 指向 src/index.ts），无运行时代码 | R:code:packages/contracts/src/index.ts | A:- | S:本包只放类型（interface 与 type），不放运行时代码——两端都用 import type，打包时被完全擦除、不产生运行时耦合
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/packages/contracts/src/===
+index.ts[CG9S]: F:前后端共享的 API 契约类型：Leg / TripPayload / TripDto / UserDto / MeResponse / Admin* / Session* / ImportEntry / TabKey | R:code:apps/api/src/lib/trips.ts,code:apps/web/src/types.ts | A:- | S:只放类型；改契约会同时影响两端编译（这是刻意的编译期保障）；TabKey 取值必须与前端分组一致
+
+===C:/Users/wang-it-think/Desktop/Code/TripTrace/scripts/===
+check-version.mjs[XV6T]: F:版本门禁脚本：校验根 package.json 的 version 与 apps/api/wrangler.jsonc 的 vars.APP_VERSION 一致 | R:code:package.json,code:apps/api/wrangler.jsonc | A:- | S:它用正则读 wrangler.jsonc 的文本（要保留注释所以不解析 JSON），因此 APP_VERSION 必须写成双引号字符串
