@@ -150,7 +150,12 @@ export function EntryView({
                 }
                 slotProps={{
                   textField: {
-                    sx: { width: 168 },
+                    sx: {
+                      width: 168,
+                      // 整块可点之后右侧的日历图标是多余装饰（MUI X 会把自己的图标合并进 endAdornment，
+                      // 传 null 无效）：直接隐藏这个装饰区，只留完整的日期输入框
+                      "& .MuiInputAdornment-root": { display: "none" },
+                    },
                     // 点整块就弹选择器；输入框只读（日期只选不敲），键盘 Enter/空格/↓ 同样打开
                     onClick: () => setDateOpen(true),
                     onKeyDown: (event) => {
@@ -159,7 +164,9 @@ export function EntryView({
                         setDateOpen(true);
                       }
                     },
-                    slotProps: { htmlInput: { readOnly: true, "aria-haspopup": "dialog" } },
+                    slotProps: {
+                      htmlInput: { readOnly: true, "aria-haspopup": "dialog" },
+                    },
                   },
                   field: { clearable: false },
                   // 弹层内 MUI X 的默认字号（overline 13.7px、星期标签 12px）抬到 14px 下限；

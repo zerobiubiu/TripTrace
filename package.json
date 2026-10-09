@@ -1,6 +1,6 @@
 {
   "name": "triptrace",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "type": "module",
   "description": "途迹 TripTrace —— 出差行程节点与里程的填报、建议与统计（单 Worker：静态资源 + API）",

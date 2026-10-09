@@ -89,3 +89,11 @@ Windows 10 / bun 1.4.2 / wrangler 4.148.0；本地单 Worker `wrangler dev --por
 1. 真机（iOS Safari）过一遍日期选择器与手机管理页卡片。
 2. 想推进「管理员看行程明细」或「出差台账」时，先 `/impeccable shape <面>` 定范围再实现。
 3. 修完上面任一项后跑 `/impeccable audit` 对比分数（当前 AdminView/AccountView 为 19/20）。
+
+## 追加（0.6.1）
+
+用户追加要求：**日期框右侧的日历图标多余，只要一个完整的日期输入框**。实现与验证：
+
+- `slotProps.textField.sx` 内加 `"& .MuiInputAdornment-root": { display: "none" }`——最初试的 `slotProps.textField.slotProps.input.endAdornment = null` 无效，因为 MUI X 会把自带的图标合并进 `endAdornment`，覆盖不住；改为隐藏整个装饰区（该方案不受内部合并顺序影响）。
+- 实测：字段内可见按钮 0 个、装饰区 `display: none`、字段宽 168px 完整显示 `2026/10/09`；点字段**右半侧**同样打开选择器（左半侧此前已验证）；键盘 ↓ 仍可打开；0 控制台错误。
+- 只影响填报页日期控件，无其它行为变化。

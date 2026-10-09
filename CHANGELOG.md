@@ -3,6 +3,13 @@
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。项目版本以根 `package.json` 为唯一事实来源，
 `apps/api/wrangler.jsonc` 的 `vars.APP_VERSION` 由 `bun run check` 门禁校验一致性；前端版本由 Vite 注入。
 
+## 0.6.1
+
+日期框去掉右侧日历图标：整块可点之后它是多余装饰，现在只留一个完整的日期输入框。
+
+- `EntryView` 的日期控件在 `slotProps.textField.sx` 内隐藏 `MuiInputAdornment-root`（先试的 `input.endAdornment = null` 无效——MUI X 会把自带图标合并进 endAdornment）。
+- 实测：字段内可见按钮 0 个、装饰区 `display: none`、字段 168px 完整显示 `2026/10/09`；点字段任意位置（含右半侧）都能打开选择器，键盘 ↓/Enter/空格 同样打开；日期仍只选不敲。
+
 ## 0.6.0
 
 产品上下文刷新（impeccable `init`）、管理页双形态（`adapt`）、会话失效加固（`harden`）与日期只选不敲；`polish` 收口把品牌图标圆角记进设计系统。
