@@ -90,8 +90,6 @@ export const api = {
 
   // 账号自助
   updateProfile: (patch: ProfilePatch) => request<{ user: UserDto }>("PATCH", "/api/me", patch),
-  uploadAvatar: (dataUrl: string) => request<{ user: UserDto }>("PUT", "/api/me/avatar", { dataUrl }),
-  removeAvatar: () => request<{ user: UserDto }>("DELETE", "/api/me/avatar"),
   listSessions: () => request<SessionListResponse>("GET", "/api/me/sessions"),
   revokeSession: (id: string) => request<OkResponse>("DELETE", `/api/me/sessions/${encodeURIComponent(id)}`),
 

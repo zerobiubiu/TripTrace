@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Autocomplete,
   Box,
@@ -20,10 +20,7 @@ import dayjs from "dayjs";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
-import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
-import type { BulkImportResponse } from "@triptrace/contracts";
-import { ImportSection } from "./ImportView";
 import {
   createEntryForm,
   formKmIssues,
@@ -31,12 +28,11 @@ import {
   withLegValue,
   withNodeAdded,
   withNodeRemoved,
-  withNodesReordered,
   type EntryForm,
 } from "../lib/entry";
 import { chainText, formatDateLabel, formatKm, formatKmText, shiftDate, todayIso, weekdayLabel } from "../lib/format";
 import { recentRoutes, suggestNodeNames, type RouteHit, type SuggestIndex } from "../lib/suggest";
-import type { Trip, TripPayload } from "../types";
+import type { Trip } from "../types";
 
 interface EntryViewProps {
   form: EntryForm;
@@ -48,10 +44,6 @@ interface EntryViewProps {
   onSave: () => void;
   onInvalid: (message: string) => void;
   onQuickRoute: (route: RouteHit) => void;
-  /** 导入并入填报：页内展开的导入区用同一套回调 */
-  onImport: (payloads: TripPayload[]) => Promise<BulkImportResponse>;
-  existing: Set<string>;
-  notify: (message: string, severity?: "success" | "info" | "warning" | "error", action?: { label: string; run: () => void }) => void;
   onClear: () => void;
   onLoadTrip: (trip: Trip) => void;
   onDeleteTrip: (trip: Trip) => void;
@@ -75,9 +67,6 @@ export function EntryView({
   onSave,
   onInvalid,
   onQuickRoute,
-  onImport,
-  existing,
-  notify,
   onClear,
   onLoadTrip,
   onDeleteTrip,
@@ -87,64 +76,6 @@ export function EntryView({
   const [query, setQuery] = useState("");
   const [attempted, setAttempted] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
-
-  // —— 拖动排序：pointer 拖动 + 键盘 ↑↓，不引依赖 —— //
-  // 拖动以「目的节点」为单位：第 i 段那一行代表节点 i+1（第一个节点没有自己的行，故不可拖动/删除）。
-  const [dragNodeIndex, setDragNodeIndex] = useState<number | null>(null);
-  const legListRef = useRef<HTMLDivElement | null>(null);
-
-  const moveNode = (from: number, to: number) => {
-    if (from === to) return;
-    updateForm((current) => withNodesReordered(current, from, to, index));
-  };
-
-  const beginDrag = (event: React.PointerEvent<HTMLElement>, legIndex: number) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    event.preventDefault();
-
-    const startNode = legIndex + 1;
-    let currentFrom = startNode;
-    setDragNodeIndex(startNode);
-
-    const nodeAt = (clientY: number): number => {
-      const rows = Array.from(legListRef.current?.querySelectorAll<HTMLElement>("[data-leg-index]") ?? []);
-      for (const row of rows) {
-        const rect = row.getBoundingClientRect();
-        if (clientY >= rect.top && clientY <= rect.bottom) {
-          return Math.min(form.nodes.length - 1, Number(row.dataset.legIndex ?? 0) + 1);
-        }
-      }
-      return currentFrom;
-    };
-
-    const onMove = (moveEvent: PointerEvent) => {
-      const target = Math.max(1, Math.min(form.nodes.length - 1, nodeAt(moveEvent.clientY)));
-      if (target === currentFrom) return;
-      moveNode(currentFrom, target);
-      currentFrom = target;
-    };
-    const onEnd = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onEnd);
-      window.removeEventListener("pointercancel", onEnd);
-      setDragNodeIndex(null);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onEnd);
-    window.addEventListener("pointercancel", onEnd);
-  };
-
-  const moveWithKeyboard = (event: React.KeyboardEvent<HTMLElement>, legIndex: number) => {
-    const nodeFrom = legIndex + 1;
-    if (event.key === "ArrowUp" && nodeFrom > 1) {
-      event.preventDefault();
-      moveNode(nodeFrom, nodeFrom - 1);
-    } else if (event.key === "ArrowDown" && nodeFrom < form.nodes.length - 1) {
-      event.preventDefault();
-      moveNode(nodeFrom, nodeFrom + 1);
-    }
-  };
 
   // 只排除「上一个节点」，允许回头节点（旗舰路线 家→圣润→天九→圣润→家 需要重复 圣润 与 家）
   const lastNode = form.nodes.length > 0 ? form.nodes.slice(-1) : [];
@@ -271,72 +202,47 @@ export function EntryView({
         <Card>
           <CardContent>
             <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
-              路线（每段一行，可拖动调整顺序）
+              路线节点（按顺序添加）
             </Typography>
-            <Stack ref={legListRef} spacing={1} sx={{ mb: 1.5 }}>
+            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, alignItems: "center", mb: 1.5 }}>
               {form.nodes.length === 0 ? (
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
                   还没有节点，例如：家 → 圣润 → 天九
                 </Typography>
               ) : (
-                form.legs.map((value, legIndex) => {
-                  const from = form.nodes[legIndex] ?? "";
-                  const to = form.nodes[legIndex + 1] ?? "";
-                  const invalid = issues.invalidLegIndexes.includes(legIndex);
-                  const missing = attempted && issues.missingLegIndexes.includes(legIndex);
-                  const dragging = dragNodeIndex === legIndex + 1;
-                  return (
-                    <Stack
-                      key={`${from}-${to}-${legIndex}`}
-                      data-leg-index={legIndex}
-                      direction="row"
-                      spacing={1}
-                      sx={{
-                        alignItems: "center",
-                        p: 1,
-                        borderRadius: 2,
-                        bgcolor: dragging ? "action.selected" : "action.hover",
-                        borderLeft: 3,
-                        borderColor: "primary.main",
-                      }}
-                    >
-                      <IconButton
-                        size="small"
-                        aria-label={`拖动排序：第 ${legIndex + 1} 段（节点 ${to}），共 ${form.legs.length} 段；方向键可换位`}
-                        onPointerDown={(event) => beginDrag(event, legIndex)}
-                        onKeyDown={(event) => moveWithKeyboard(event, legIndex)}
-                        sx={{ width: 44, height: 44, touchAction: "none", cursor: "grab" }}
-                      >
-                        <DragIndicatorRoundedIcon fontSize="small" />
-                      </IconButton>
-                      <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
-                        {from} → {to}
-                      </Typography>
-                      <Box sx={{ flex: 1, minWidth: 8 }} />
-                      <TextField
-                        size="small"
-                        value={value}
-                        error={invalid || missing}
-                        helperText={invalid ? KM_HELP : missing ? "必填" : undefined}
-                        slotProps={{
-                          htmlInput: { inputMode: "decimal", "aria-label": `${from} 到 ${to} 的里程` },
-                        }}
-                        onChange={(event) =>
-                          updateForm((current) => withLegValue(current, legIndex, event.target.value))
-                        }
-                        sx={{ width: 124 }}
-                      />
-                      <IconButton
-                        size="small"
-                        aria-label={`移除节点 ${to}`}
-                        onClick={() => updateForm((current) => withNodeRemoved(current, legIndex + 1, index))}
-                        sx={{ width: 44, height: 44 }}
-                      >
-                        <CancelRoundedIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  );
-                })
+                form.nodes.map((name, nodeIndex) => (
+                  <Stack key={`${name}-${nodeIndex}`} direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
+                    {nodeIndex > 0 ? <Typography sx={{ color: "text.secondary" }}>→</Typography> : null}
+                    <Chip
+                      label={name}
+                      color="primary"
+                      variant="outlined"
+                      onDelete={() => updateForm((current) => withNodeRemoved(current, nodeIndex, index))}
+                      deleteIcon={
+                        <CancelRoundedIcon
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`移除节点 ${name}`}
+                          sx={{
+                            // 键盘焦点要看得见（它是可 Tab 到的删除控件）
+                            "&:focus-visible": {
+                              outline: "2px solid",
+                              outlineColor: "primary.dark",
+                              outlineOffset: 2,
+                              borderRadius: "50%",
+                            },
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              updateForm((current) => withNodeRemoved(current, nodeIndex, index));
+                            }
+                          }}
+                        />
+                      }
+                    />
+                  </Stack>
+                ))
               )}
             </Stack>
 
@@ -383,6 +289,57 @@ export function EntryView({
           </CardContent>
         </Card>
 
+        {form.legs.length > 0 ? (
+          <Card>
+            <CardContent>
+              <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
+                分段里程（每段必填，默认带出历史值）
+              </Typography>
+              <Stack spacing={1}>
+                {form.legs.map((value, legIndex) => {
+                  const from = form.nodes[legIndex] ?? "";
+                  const to = form.nodes[legIndex + 1] ?? "";
+                  const invalid = issues.invalidLegIndexes.includes(legIndex);
+                  const missing = attempted && issues.missingLegIndexes.includes(legIndex);
+                  return (
+                    <Stack
+                      key={`${from}-${to}-${legIndex}`}
+                      direction="row"
+                      spacing={1}
+                      sx={{
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        rowGap: 1,
+                        p: 1,
+                        borderRadius: 2,
+                        bgcolor: "action.hover",
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {from} → {to}
+                      </Typography>
+                      <Box sx={{ flex: 1 }} />
+                      <TextField
+                        size="small"
+                        value={value}
+                        error={invalid || missing}
+                        helperText={invalid ? KM_HELP : missing ? "必填" : undefined}
+                        slotProps={{
+                          htmlInput: { inputMode: "decimal", "aria-label": `${from} 到 ${to} 的里程` },
+                        }}
+                        onChange={(event) =>
+                          updateForm((current) => withLegValue(current, legIndex, event.target.value))
+                        }
+                        sx={{ width: 124 }}
+                      />
+                    </Stack>
+                  );
+                })}
+              </Stack>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <Card>
           <CardContent>
             <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
@@ -412,31 +369,6 @@ export function EntryView({
                   </Button>
                 ) : null}
               </Stack>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>
-              <Typography variant="h3" component="h3">
-                导入历史文本
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                sx={{ minHeight: 44 }}
-                aria-expanded={importOpen}
-                aria-controls="entry-import-section"
-                onClick={() => setImportOpen((current) => !current)}
-              >
-                {importOpen ? "收起" : "展开"}
-              </Button>
-            </Stack>
-            {importOpen ? (
-              <Box id="entry-import-section" sx={{ mt: 1.5 }}>
-                <ImportSection onImport={onImport} notify={notify} existing={existing} />
-              </Box>
             ) : null}
           </CardContent>
         </Card>

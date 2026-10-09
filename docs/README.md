@@ -16,7 +16,7 @@
 | `changes/` | [0007-user-management.md](changes/0007-user-management.md) | 变更记录 | 已执行 | 用户管理（0.5.0）：管理员后台（列表/重置密码/启停/删除级联）+ 个人账号自助（显示名/设备会话） |
 | `changes/` | [0008-design-system-and-polish.md](changes/0008-design-system-and-polish.md) | 变更记录 | 已执行 | 设计系统文档化与 polish 收口（0.5.1）：14px 地板落到主题、键盘焦点环、清理重复覆盖 |
 | `changes/` | [0009-init-adapt-harden.md](changes/0009-init-adapt-harden.md) | 变更记录 | 已执行 | 产品上下文刷新 / 管理页双形态 / 会话失效加固 / 日期只选不敲（0.6.0） |
-| `changes/` | [0010-nav-records-nodes-avatar.md](changes/0010-nav-records-nodes-avatar.md) | 变更记录 | 已执行 | 分组收敛/记录查询区/节点每段一行可拖动/用户头像（0.7.0） |
+| `changes/` | [0010-nav-records-nodes-avatar.md](changes/0010-nav-records-nodes-avatar.md) | 变更记录 | **已回退** | 分组收敛/记录查询区/节点每段一行/头像（0.7.0）——0.7.1 已整体回退到 0.6.2，文件保留作可复用参考 |
 | 同目录 | [../apps/web/DESIGN.md](../apps/web/DESIGN.md) | 设计系统 | 已执行 | 视觉系统的规范来源（令牌 frontmatter + 八节）；侧车在 `apps/web/.impeccable/design.json` |
 | `troubleshooting/` | [0001-auth-and-session-ops.md](troubleshooting/0001-auth-and-session-ops.md) | 排查手册 | 参考 | PBKDF2 迭代上限与 CPU 额度取舍；手动删用户后的会话缓存清理步骤 |
 | `troubleshooting/` | [0002-workspace-tooling-gotchas.md](troubleshooting/0002-workspace-tooling-gotchas.md) | 排查手册 | 参考 | workspaces 拆分后的工具链坑：shim 残留、全局 vite 抢占、Pages 项目创建与自定义域 DNS、TS7 baseUrl |

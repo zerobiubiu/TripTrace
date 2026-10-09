@@ -19,10 +19,6 @@ export const users = sqliteTable("users", {
   updatedAt: text("updated_at").notNull(),
   /** 非空表示已被管理员禁用：拒绝登录并使其所有会话失效。 */
   disabledAt: text("disabled_at"),
-  /** 自定义头像（data URL，客户端已压到最长边 ≤1000px）；NULL 表示用显示名首字生成默认头像。 */
-  avatar: text("avatar"),
-  /** 头像版本（ISO 时间）：既做存在标记，也做 /api/me/avatar 的缓存键。 */
-  avatarUpdatedAt: text("avatar_updated_at"),
 });
 
 export const sessions = sqliteTable(

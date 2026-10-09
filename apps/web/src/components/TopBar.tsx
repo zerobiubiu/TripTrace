@@ -19,13 +19,13 @@ import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import type { TabKey, User } from "../types";
-import { AvatarBadge } from "./AvatarBadge";
 
-/** 分组导航项（唯一来源）：顶栏内联展示，移动端与桌面端同一形态。
- *  0.7.0 起只有两个分组：汇总并入「记录」页、导入并入「填报」页（页内展开）。 */
+/** 分组导航项（唯一来源）：顶栏内联展示，移动端与桌面端同一形态。 */
 export const TAB_ITEMS = [
   { key: "entry", label: "填报" },
   { key: "records", label: "记录" },
+  { key: "stats", label: "汇总" },
+  { key: "import", label: "导入" },
 ] as const satisfies ReadonlyArray<{ key: TabKey; label: string }>;
 
 interface TopBarProps {
@@ -98,13 +98,11 @@ export function TopBar({
         </Tabs>
 
         <Box sx={{ flex: 1 }} />
-        <AvatarBadge displayName={user.displayName} avatarUpdatedAt={user.avatarUpdatedAt} size={32} />
         <Typography
           variant="caption"
           color="text.secondary"
           sx={{
             display: { xs: "none", sm: "block" },
-            ml: 0.75,
             maxWidth: "22vw",
             overflow: "hidden",
             textOverflow: "ellipsis",

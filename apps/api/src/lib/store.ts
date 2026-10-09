@@ -10,34 +10,13 @@ import type { Db } from "./db";
 /** D1 单条语句最多 100 个绑定参数，trips 一行 10 列 → 每批 8 行。 */
 const TRIP_INSERT_CHUNK = 8;
 
-/**
- * 用户列（**不含 avatar**）：会话热路径、KV 会话缓存、管理员列表都不该带着几百 KB 的头像。
- * 头像单独由 `findUserAvatar` 按需取。
- */
-const userColumns = {
-  id: users.id,
-  username: users.username,
-  displayName: users.displayName,
-  avatarUpdatedAt: users.avatarUpdatedAt,
-  disabledAt: users.disabledAt,
-  pwdAlgo: users.pwdAlgo,
-  pwdSalt: users.pwdSalt,
-  pwdHash: users.pwdHash,
-  pwdIterations: users.pwdIterations,
-  createdAt: users.createdAt,
-  updatedAt: users.updatedAt,
-};
-
-/** 不含头像大字段的用户行（其余列与 UserRow 一致）。 */
-export type UserSummary = Omit<UserRow, "avatar">;
-
-export async function findUserByUsername(db: Db, username: string): Promise<UserSummary | null> {
-  const rows = await db.select(userColumns).from(users).where(eq(users.username, username)).limit(1);
+export async function findUserByUsername(db: Db, username: string): Promise<UserRow | null> {
+  const rows = await db.select().from(users).where(eq(users.username, username)).limit(1);
   return rows[0] ?? null;
 }
 
-export async function findUserById(db: Db, id: string): Promise<UserSummary | null> {
-  const rows = await db.select(userColumns).from(users).where(eq(users.id, id)).limit(1);
+export async function findUserById(db: Db, id: string): Promise<UserRow | null> {
+  const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return rows[0] ?? null;
 }
 
@@ -85,30 +64,9 @@ export async function setUserDisabledAt(
   await db.update(users).set({ disabledAt, updatedAt }).where(eq(users.id, userId));
 }
 
-/** 写入自定义头像（data URL）；`updatedAt` 同时作为头像版本与缓存键。 */
-export async function updateUserAvatar(
-  db: Db,
-  userId: string,
-  avatar: string,
-  updatedAt: string,
-): Promise<void> {
-  await db.update(users).set({ avatar, avatarUpdatedAt: updatedAt, updatedAt }).where(eq(users.id, userId));
-}
-
-/** 清除自定义头像（回到显示名首字的默认头像）。 */
-export async function clearUserAvatar(db: Db, userId: string, updatedAt: string): Promise<void> {
-  await db.update(users).set({ avatar: null, avatarUpdatedAt: null, updatedAt }).where(eq(users.id, userId));
-}
-
-/** 只取头像本体（data URL）；无头像返回 null。单独查询避免把大字段带进其它路径。 */
-export async function findUserAvatar(db: Db, userId: string): Promise<string | null> {
-  const rows = await db.select({ avatar: users.avatar }).from(users).where(eq(users.id, userId)).limit(1);
-  return rows[0]?.avatar ?? null;
-}
-
-/** 全部用户（新建在前），供管理员列表使用；不含头像本体。 */
-export async function listUsers(db: Db): Promise<UserSummary[]> {
-  return await db.select(userColumns).from(users).orderBy(desc(users.createdAt));
+/** 全部用户（新建在前），供管理员列表使用。 */
+export async function listUsers(db: Db): Promise<UserRow[]> {
+  return await db.select().from(users).orderBy(desc(users.createdAt));
 }
 
 export interface UserTripStats {
@@ -183,11 +141,11 @@ export async function deleteUserCascade(db: Db, userId: string): Promise<void> {
   await db.delete(users).where(eq(users.id, userId));
 }
 
-export type SessionWithUser = SessionRow & { user: UserSummary };
+export type SessionWithUser = SessionRow & { user: UserRow };
 
 export async function findSessionWithUser(db: Db, tokenHash: string): Promise<SessionWithUser | null> {
   const rows = await db
-    .select({ session: sessions, user: userColumns })
+    .select({ session: sessions, user: users })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
     .where(eq(sessions.tokenHash, tokenHash))

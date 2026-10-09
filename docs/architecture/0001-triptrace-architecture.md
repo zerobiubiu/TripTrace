@@ -45,7 +45,7 @@ bun run dev:web                        # Vite HMR（5173，代理 /api → 8787�
 
 | 表 | 关键列 | 说明 |
 | --- | --- | --- |
-| `users` | `id`、`username`（唯一，归一化小写）、`display_name`、`pwd_algo`、`pwd_salt`、`pwd_hash`、`pwd_iterations`、`disabled_at`、`avatar`（data URL，最长边 ≤1000px）、`avatar_updated_at`（头像版本 / 缓存键） | 迭代次数按用户存储，便于将来升级算法而不影响存量账号；**头像大字段不进会话热路径**（`userColumns` 显式排除，按需由 `findUserAvatar` 取） |
+| `users` | `id`、`username`（唯一，归一化小写）、`display_name`、`pwd_algo`、`pwd_salt`、`pwd_hash`、`pwd_iterations` | 迭代次数按用户存储，便于将来升级算法而不影响存量账号 |
 | `sessions` | `id`、`user_id`、`token_hash`（唯一）、`created_at`、`last_seen_at`、`extended_at`、`expires_at`、`user_agent` | `extended_at` 把滚动续期限制为每天最多一次写入 |
 | `trips` | `id`、`user_id`、`date`、`nodes`(JSON)、`legs`(JSON `{from,to,km\|null}`)、`total_km`(可空)、`note`、`source`、`created_at`、`updated_at` | 一次“当天的一条行程”；同一天可多条 |
 
@@ -78,9 +78,6 @@ bun run dev:web                        # Vite HMR（5173，代理 /api → 8787�
 | PATCH | `/api/me` | 是 | 改显示名（trim 后 1..24 字符），返回 `{user}` |
 | GET | `/api/me/sessions` | 是 | 当前用户的登录设备（会话）列表，含 `current` 标记 |
 | DELETE | `/api/me/sessions/:id` | 是 | 登出指定设备（仅限自己的会话，否则 404） |
-| PUT | `/api/me/avatar` | 是 | 上传/更换头像（data URL；请求体 ≤1.5MB，解码后 ≤700KB），返回 `{user}` |
-| DELETE | `/api/me/avatar` | 是 | 移除头像（回到显示名首字），返回 `{user}` |
-| GET | `/api/me/avatar` | 是 | 头像本体：`private, max-age=31536000, immutable`；无头像 → 404 + `no-store` |
 | GET | `/api/admin/users` | 管理员 | 用户列表：行程数 / 合计里程 / 会话数 / 最近活跃 / 禁用状态 |
 | PATCH | `/api/admin/users/:id` | 管理员 | 启用/禁用（禁用会立即清空该用户全部会话）；禁止操作自己 |
 | POST | `/api/admin/users/:id/password` | 管理员 | 重置密码（≥8 位）并强制其全部设备重新登录 |
@@ -113,14 +110,12 @@ apps/web/src/
 ├── lib/draft.ts              # 草稿持久化（localStorage，按用户隔离；登录与启动两条路径恢复）
 ├── lib/tripList.ts           # 本地列表更新
 ├── lib/version.ts            # 构建期注入的版本号
-├── components/               # TopBar（品牌 + 两个分组 + 头像 + 账号菜单）/ AvatarBadge / Toasts / PasswordDialog（全部 MUI）
-├── views/                    # AuthScreen / EntryView（含页内展开的导入区）/ RecordsView（日历查询区）/ AccountView / AdminView（后三者懒加载）
+├── components/               # TopBar（品牌 + 四个分组导航 + 账号菜单）/ Toasts / PasswordDialog（全部 MUI）
+├── views/                    # AuthScreen / EntryView / RecordsView / StatsView / ImportView / AccountView / AdminView（后三者为懒加载）
 └── app.css                   # 仅全局基线与安全区，其余全部走 MUI
 ```
 
-导航（0.7.0 起）：标题栏只有**两个分组**（填报 / 记录）——导入并入填报（页内展开的次级卡片），汇总并入记录页（可折叠的独立区块）；账号自助与管理员后台从标题栏的账号菜单进入；用户名左侧显示头像（无自定义头像时用显示名首字）。日期选择统一用 `@mui/x-date-pickers`（dayjs 适配器 + 中文文案），记录页用 `StaticDatePicker` 做单日筛查。
-
-视图与组件约定：`lib/avatar.ts` 负责客户端头像压缩（等比缩放到最长边 ≤1000px、质量自适应到 ≤700KB），`components/AvatarBadge.tsx` 负责头像/默认首字徽标；`lib/entry.ts` 的 `withNodesReordered` 是节点拖动/键盘换位的纯函数（仍相邻的端点对保留里程，其余按历史默认值补齐）。
+导航：四个分组（填报 / 记录 / 汇总 / 导入）内联在标题栏（移动端与桌面端同形态）；账号自助与管理员后台从标题栏的账号菜单进入。日期选择统一用 `@mui/x-date-pickers`（dayjs 适配器 + 中文文案）。
 
 建议引擎（登录后一次性拉取行程数组，`buildIndex` 建索引）：节点名按次数 + 最近使用排序（前缀优先）；分段里程**默认值**取同方向最常用值，没有同方向时**按反方向推断**（同一条路往返里程相同，界面不区分方向），已有手填值不覆盖；节点链完全一致时整链一键沿用（`withChainApplied`，按历史补齐分段）。总里程恒为分段合计（`formTotalKm`），任一段为空即拒绝保存（`formKmIssues` 区分「空白」与「不合规」）。
 

@@ -2,15 +2,7 @@
 
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import type {
-  AuthResponse,
-  AvatarPayload,
-  MeResponse,
-  OkResponse,
-  ProfilePatch,
-  SessionListResponse,
-  UserDto,
-} from "@triptrace/contracts";
+import type { AuthResponse, MeResponse, OkResponse, ProfilePatch, SessionListResponse } from "@triptrace/contracts";
 import {
   allowRateLimited,
   assertSignupCode,
@@ -36,7 +28,7 @@ import {
   sessionCacheKey,
   type AppEnv,
 } from "../lib/context";
-import { applySecurityHeaders, assertSameOrigin, clientIp, HttpError, readJsonBody, SESSION_COOKIE } from "../lib/http";
+import { assertSameOrigin, clientIp, HttpError, readJsonBody, SESSION_COOKIE } from "../lib/http";
 import * as store from "../lib/store";
 
 const LOGIN_WINDOW_SEC = 15 * 60;
@@ -57,54 +49,6 @@ function validateProfileDisplayName(raw: unknown): string {
   return name;
 }
 
-/** 统一的对外用户表示：只带头像**版本**，不带头像本体（本体走 /api/me/avatar）。 */
-function toUserDto(user: {
-  id: string;
-  username: string;
-  displayName: string;
-  avatarUpdatedAt?: string | null;
-}): UserDto {
-  return {
-    id: user.id,
-    username: user.username,
-    displayName: user.displayName,
-    avatarUpdatedAt: user.avatarUpdatedAt ?? null,
-  };
-}
-
-/** 头像上限：客户端已压到最长边 ≤1000px，这里再按解压后的字节数兜底（1000px JPEG 通常在 150–400KB）。 */
-const AVATAR_MAX_BYTES = 700 * 1024;
-/** 请求体上限：700KB 的图经 base64 后约 933KB，留出 JSON 包装余量（默认 512KB 会先于体积校验拦掉）。 */
-const AVATAR_MAX_BODY_BYTES = 1536 * 1024;
-const AVATAR_DATA_URL_PATTERN = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
-
-function decodeAvatarDataUrl(raw: unknown): { dataUrl: string; contentType: string; bytes: Uint8Array } {
-  if (typeof raw !== "string" || !raw.trim()) {
-    throw new HttpError(400, "invalid_avatar", "头像数据格式不正确");
-  }
-  const dataUrl = raw.trim();
-  const match = AVATAR_DATA_URL_PATTERN.exec(dataUrl);
-  if (!match) throw new HttpError(400, "invalid_avatar", "头像只支持 JPEG / PNG / WebP 的 data URL");
-  const subtype = match[1] ?? "jpeg";
-  const base64 = match[2] ?? "";
-  let binary: string;
-  try {
-    binary = atob(base64);
-  } catch {
-    throw new HttpError(400, "invalid_avatar", "头像数据无法解码");
-  }
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-  if (bytes.byteLength > AVATAR_MAX_BYTES) {
-    throw new HttpError(
-      400,
-      "avatar_too_large",
-      `头像过大（${Math.round(bytes.byteLength / 1024)}KB），请压缩到 ${AVATAR_MAX_BYTES / 1024}KB 以内`,
-    );
-  }
-  return { dataUrl, contentType: `image/${subtype}`, bytes };
-}
-
 export const authRoutes = new Hono<AppEnv>();
 
 authRoutes.get("/me", async (c) => {
@@ -114,7 +58,7 @@ authRoutes.get("/me", async (c) => {
     if (current) setCookie(c, SESSION_COOKIE, current, sessionCookieOptions(c.req.raw));
   }
   const payload: MeResponse = {
-    user: session ? toUserDto(session.user) : null,
+    user: session ? session.user : null,
     signupCodeRequired: Boolean(c.env.SIGNUP_CODE),
     version: c.env.APP_VERSION ?? "dev",
     isAdmin: session ? isAdmin(c.env, session.user.username) : false,
@@ -134,55 +78,8 @@ authRoutes.patch("/me", ...authedHandlers, async (c) => {
   // KV 会话缓存里存着旧显示名，清掉让下一次请求从 D1 回源（会话本身仍在 D1，不影响登录态）。
   await clearUserSessionCache(c.env, user.id);
 
-  const payload: AuthResponse = { user: toUserDto({ ...user, displayName }) };
+  const payload: AuthResponse = { user: { id: user.id, username: user.username, displayName } };
   return c.json(payload);
-});
-
-/**
- * 上传/更换头像：body 是客户端压好的 data URL（最长边 ≤1000px，解压后 ≤700KB）。
- * 头像本体不进任何 JSON：版本号变化即 URL 变化，浏览器按 /api/me/avatar?v=… 长缓存。
- */
-authRoutes.put("/me/avatar", ...authedHandlers, async (c) => {
-  assertSameOrigin(c.req.raw, c.env);
-  const body = await readJsonBody<Partial<AvatarPayload> | null>(c.req.raw, AVATAR_MAX_BODY_BYTES);
-  const { dataUrl } = decodeAvatarDataUrl(body?.dataUrl);
-
-  const db = c.get("db");
-  const user = c.get("user");
-  const now = new Date().toISOString();
-  await store.updateUserAvatar(db, user.id, dataUrl, now);
-  // 会话缓存里存着旧的头像版本，清掉让下一次请求从 D1 回源。
-  await clearUserSessionCache(c.env, user.id);
-
-  const payload: AuthResponse = { user: toUserDto({ ...user, avatarUpdatedAt: now }) };
-  return c.json(payload);
-});
-
-/** 移除头像：回到显示名首字生成的默认头像。 */
-authRoutes.delete("/me/avatar", ...authedHandlers, async (c) => {
-  assertSameOrigin(c.req.raw, c.env);
-  const db = c.get("db");
-  const user = c.get("user");
-  await store.clearUserAvatar(db, user.id, new Date().toISOString());
-  await clearUserSessionCache(c.env, user.id);
-
-  const payload: AuthResponse = { user: toUserDto({ ...user, avatarUpdatedAt: null }) };
-  return c.json(payload);
-});
-
-/** 头像本体：私有长缓存（`?v=` 变化即失效）；没有头像时 404 + no-store，客户端据此回退默认头像。 */
-authRoutes.get("/me/avatar", ...authedHandlers, async (c) => {
-  const raw = await store.findUserAvatar(c.get("db"), c.get("user").id);
-  if (!raw) {
-    return applySecurityHeaders(new Response(null, { status: 404, headers: { "cache-control": "no-store" } }));
-  }
-  const { bytes, contentType } = decodeAvatarDataUrl(raw);
-  return applySecurityHeaders(
-    new Response(bytes, {
-      status: 200,
-      headers: { "content-type": contentType, "cache-control": "private, max-age=31536000, immutable" },
-    }),
-  );
 });
 
 /** 登录设备列表：仅本人会话，最近活跃在前。 */
@@ -265,14 +162,9 @@ authRoutes.post("/auth/register", async (c) => {
     throw error;
   }
 
-  const cookieValue = await createSession(db, c.env, c.req.raw, {
-    id: userId,
-    username,
-    displayName,
-    avatarUpdatedAt: null,
-  });
+  const cookieValue = await createSession(db, c.env, c.req.raw, { id: userId, username, displayName });
   setCookie(c, SESSION_COOKIE, cookieValue, sessionCookieOptions(c.req.raw));
-  const payload: AuthResponse = { user: toUserDto({ id: userId, username, displayName }) };
+  const payload: AuthResponse = { user: { id: userId, username, displayName } };
   return c.json(payload, 201);
 });
 
@@ -323,10 +215,9 @@ authRoutes.post("/auth/login", async (c) => {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
-    avatarUpdatedAt: user.avatarUpdatedAt ?? null,
   });
   setCookie(c, SESSION_COOKIE, cookieValue, sessionCookieOptions(c.req.raw));
-  const payload: AuthResponse = { user: toUserDto(user) };
+  const payload: AuthResponse = { user: { id: user.id, username: user.username, displayName: user.displayName } };
   return c.json(payload);
 });
 

@@ -16,8 +16,6 @@ import {
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import type { SessionRow } from "@triptrace/contracts";
 import { api, isUnauthorized } from "../api";
-import { AvatarBadge } from "../components/AvatarBadge";
-import { fileToAvatarDataUrl } from "../lib/avatar";
 import { formatDateTimeLabel, normalizeName, userAgentLabel } from "../lib/format";
 import type { UserDto } from "../types";
 
@@ -168,52 +166,6 @@ export function AccountView({ user, onOpenPassword, notify, onUserChanged, onSes
   const normalized = normalizeName(displayName);
   const canSave = !saving && normalized.length > 0 && normalized !== user.displayName;
 
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const [avatarBusy, setAvatarBusy] = useState(false);
-  const [avatarError, setAvatarError] = useState("");
-
-  const handleAvatarPicked = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    // 清空 value：连着选同一张图也要触发 change
-    event.target.value = "";
-    if (!file) return;
-    setAvatarError("");
-    setAvatarBusy(true);
-    try {
-      const image = await fileToAvatarDataUrl(file);
-      const result = await api.uploadAvatar(image.dataUrl);
-      onUserChanged(result.user);
-      notify(
-        `头像已更新（${image.width}×${image.height}，${Math.round(image.bytes / 1024)}KB）`,
-        "success",
-      );
-    } catch (error) {
-      if (isUnauthorized(error)) sessionInvalidRef.current?.();
-      const message = error instanceof Error ? error.message : "头像上传失败，请稍后重试";
-      setAvatarError(message);
-      notify(message, "error");
-    } finally {
-      setAvatarBusy(false);
-    }
-  };
-
-  const handleRemoveAvatar = async () => {
-    setAvatarError("");
-    setAvatarBusy(true);
-    try {
-      const result = await api.removeAvatar();
-      onUserChanged(result.user);
-      notify("已移除头像，改用显示名首字", "success");
-    } catch (error) {
-      if (isUnauthorized(error)) sessionInvalidRef.current?.();
-      const message = error instanceof Error ? error.message : "移除失败，请稍后重试";
-      setAvatarError(message);
-      notify(message, "error");
-    } finally {
-      setAvatarBusy(false);
-    }
-  };
-
   const handleSaveName = async () => {
     if (!canSave) return;
     setSaving(true);
@@ -253,53 +205,6 @@ export function AccountView({ user, onOpenPassword, notify, onUserChanged, onSes
 
   return (
     <Stack spacing={2}>
-      <Card>
-        <CardContent>
-          <Typography variant="h3" component="h3" sx={{ mb: 1.5 }}>
-            头像
-          </Typography>
-          <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-            <AvatarBadge displayName={user.displayName} avatarUpdatedAt={user.avatarUpdatedAt} size={72} />
-            <Stack spacing={1} sx={{ minWidth: 0 }}>
-              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-                <Button
-                  variant="outlined"
-                  sx={TOUCH_SX}
-                  disabled={avatarBusy}
-                  aria-label={user.avatarUpdatedAt ? "更换头像" : "上传头像"}
-                  onClick={() => fileRef.current?.click()}
-                >
-                  {avatarBusy ? "处理中…" : user.avatarUpdatedAt ? "更换头像" : "上传头像"}
-                </Button>
-                {user.avatarUpdatedAt ? (
-                  <Button
-                    color="error"
-                    sx={TOUCH_SX}
-                    disabled={avatarBusy}
-                    aria-label="移除头像"
-                    onClick={() => void handleRemoveAvatar()}
-                  >
-                    移除
-                  </Button>
-                ) : null}
-              </Stack>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                支持 JPEG / PNG / WebP，自动压到最长边 1000px
-              </Typography>
-              {avatarError ? <Alert severity="error">{avatarError}</Alert> : null}
-            </Stack>
-          </Stack>
-          <Box
-            component="input"
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={(event) => void handleAvatarPicked(event)}
-            sx={{ display: "none" }}
-          />
-        </CardContent>
-      </Card>
-
       <Card>
         <CardContent>
           <Typography variant="h3" component="h3" sx={{ mb: 1.5 }}>
