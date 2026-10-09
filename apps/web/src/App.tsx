@@ -421,6 +421,7 @@ export function App() {
                   notify={notify}
                   onOpenPassword={() => setPasswordOpen(true)}
                   onUserChanged={(user) => setMe((current) => (current ? { ...current, user } : current))}
+                  onSessionInvalid={() => setMe((current) => (current ? { ...current, user: null } : current))}
                 />
               </Suspense>
             ) : null}

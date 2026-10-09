@@ -75,6 +75,7 @@ export function EntryView({
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [query, setQuery] = useState("");
   const [attempted, setAttempted] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
 
   // 只排除「上一个节点」，允许回头节点（旗舰路线 家→圣润→天九→圣润→家 需要重复 圣润 与 家）
   const lastNode = form.nodes.length > 0 ? form.nodes.slice(-1) : [];
@@ -138,6 +139,9 @@ export function EntryView({
                 label="日期"
                 value={dayjs(form.date)}
                 format="YYYY/MM/DD"
+                open={dateOpen}
+                onOpen={() => setDateOpen(true)}
+                onClose={() => setDateOpen(false)}
                 onChange={(value) =>
                   updateForm((current) => ({
                     ...current,
@@ -145,7 +149,18 @@ export function EntryView({
                   }))
                 }
                 slotProps={{
-                  textField: { sx: { width: 168 } },
+                  textField: {
+                    sx: { width: 168 },
+                    // 点整块就弹选择器；输入框只读（日期只选不敲），键盘 Enter/空格/↓ 同样打开
+                    onClick: () => setDateOpen(true),
+                    onKeyDown: (event) => {
+                      if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+                        event.preventDefault();
+                        setDateOpen(true);
+                      }
+                    },
+                    slotProps: { htmlInput: { readOnly: true, "aria-haspopup": "dialog" } },
+                  },
                   field: { clearable: false },
                   // 弹层内 MUI X 的默认字号（overline 13.7px、星期标签 12px）抬到 14px 下限；
                   // 窄屏走 dialog 变体、宽屏走 popper 变体，两处都要挂

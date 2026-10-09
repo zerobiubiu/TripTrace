@@ -1,6 +1,6 @@
 /** 「账号」页：修改显示名、查看/登出登录设备、进入修改密码。 */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -31,6 +31,11 @@ interface AccountViewProps {
   onOpenPassword: () => void;
   notify: Notify;
   onUserChanged: (user: UserDto) => void;
+  /**
+   * 会话失效（401）时通知主进程（跳回登录）。不传也可以：页面只保留原有错误态，
+   * 这在未接线/独立渲染时不会报错。
+   */
+  onSessionInvalid?: () => void;
 }
 
 /** 主题桌面端按钮只有 40px 高，这里保证可点区域 ≥44px。 */
@@ -117,12 +122,21 @@ export function SessionsCard({ sessions, error, revokingId, onRetry, onRevoke }:
   );
 }
 
-export function AccountView({ user, onOpenPassword, notify, onUserChanged }: AccountViewProps) {
+export function AccountView({ user, onOpenPassword, notify, onUserChanged, onSessionInvalid }: AccountViewProps) {
   const [displayName, setDisplayName] = useState(user.displayName);
   const [saving, setSaving] = useState(false);
   const [sessions, setSessions] = useState<SessionRow[] | null>(null);
   const [sessionsError, setSessionsError] = useState("");
   const [revokingId, setRevokingId] = useState<string | null>(null);
+
+  /**
+   * 401 交给主进程处理；父组件可能每次渲染都传新的内联函数，
+   * 用 ref 保存最新一份，避免把它加进 loadSessions 依赖导致反复拉取设备列表。
+   */
+  const sessionInvalidRef = useRef(onSessionInvalid);
+  useEffect(() => {
+    sessionInvalidRef.current = onSessionInvalid;
+  }, [onSessionInvalid]);
 
   // 保存成功或用户信息在外部刷新后，输入框跟随最新显示名
   useEffect(() => {
@@ -138,6 +152,7 @@ export function AccountView({ user, onOpenPassword, notify, onUserChanged }: Acc
     } catch (error) {
       if (isUnauthorized(error)) {
         setSessionsError("登录已失效，请重新登录");
+        sessionInvalidRef.current?.();
       } else {
         setSessionsError(error instanceof Error ? error.message : "登录设备加载失败，请稍后重试");
       }
@@ -159,6 +174,7 @@ export function AccountView({ user, onOpenPassword, notify, onUserChanged }: Acc
       onUserChanged(result.user);
       notify("显示名已更新", "success");
     } catch (error) {
+      if (isUnauthorized(error)) sessionInvalidRef.current?.();
       notify(error instanceof Error ? error.message : "保存失败，请稍后重试", "error");
     } finally {
       setSaving(false);
@@ -172,8 +188,10 @@ export function AccountView({ user, onOpenPassword, notify, onUserChanged }: Acc
       notify("已登出该设备", "success");
       await loadSessions();
     } catch (error) {
+      const unauthorized = isUnauthorized(error);
+      if (unauthorized) sessionInvalidRef.current?.();
       notify(
-        isUnauthorized(error)
+        unauthorized
           ? "登录已失效，请重新登录"
           : error instanceof Error
             ? error.message

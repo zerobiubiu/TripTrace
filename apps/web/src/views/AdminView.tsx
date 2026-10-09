@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  Box,
   Button,
+  Card,
+  CardContent,
   Chip,
   Dialog,
   DialogActions,
@@ -20,7 +23,9 @@ import {
   TableRow,
   TextField,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import type { AdminUserRow } from "@triptrace/contracts";
 import { api, isUnauthorized } from "../api";
 import { formatDateTimeLabel, formatKm } from "../lib/format";
@@ -45,6 +50,50 @@ const HEAD_SX = { fontWeight: 600, whiteSpace: "nowrap" } as const;
 /** 数字列右对齐 + 等宽数字，与全站读数规则一致。 */
 const NUM_SX = { fontVariantNumeric: "tabular-nums" } as const;
 
+interface UserActionsProps {
+  row: AdminUserRow;
+  isSelf: boolean;
+  onResetPassword: (row: AdminUserRow) => void;
+  onToggleDisabled: (row: AdminUserRow) => void;
+  onDelete: (row: AdminUserRow) => void;
+}
+
+/**
+ * 行操作按钮：桌面表格行与手机卡片共用同一套（aria 命名、可点区域、自己那行的规则）。
+ * 自己那一行不渲染禁用/删除。
+ */
+function UserActions({ row, isSelf, onResetPassword, onToggleDisabled, onDelete }: UserActionsProps) {
+  const disabled = row.disabledAt !== null;
+  return (
+    <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
+      <Button
+        size="small"
+        sx={TOUCH_SX}
+        aria-label={`重置密码：${row.username}`}
+        onClick={() => onResetPassword(row)}
+      >
+        重置密码
+      </Button>
+      {isSelf ? null : (
+        <>
+          <Button
+            size="small"
+            color={disabled ? "success" : "warning"}
+            sx={TOUCH_SX}
+            aria-label={`${disabled ? "启用" : "禁用"}账号：${row.username}`}
+            onClick={() => onToggleDisabled(row)}
+          >
+            {disabled ? "启用" : "禁用"}
+          </Button>
+          <Button size="small" color="error" sx={TOUCH_SX} aria-label={`删除账号：${row.username}`} onClick={() => onDelete(row)}>
+            删除
+          </Button>
+        </>
+      )}
+    </Stack>
+  );
+}
+
 /** 与服务端 validatePassword 同一口径：8–200 位；返回空串表示通过。 */
 function passwordIssue(value: string): string {
   if (value.length < 8) return "新密码至少 8 位";
@@ -53,6 +102,9 @@ function passwordIssue(value: string): string {
 }
 
 export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminViewProps) {
+  const theme = useTheme();
+  /** ≥md 表格形态；<md（手机/窄窗）卡片形态，避免靠横向滚动找「操作」列。 */
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [users, setUsers] = useState<AdminUserRow[] | null>(null);
   const [loadError, setLoadError] = useState("");
   const [resetTarget, setResetTarget] = useState<AdminUserRow | null>(null);
@@ -99,6 +151,13 @@ export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminView
     setResetTarget(null);
     setPassword("");
     setPasswordTouched(false);
+  };
+
+  /** 打开重置密码对话框前清掉上一次的输入与校验状态（表格与卡片共用）。 */
+  const openResetPassword = (row: AdminUserRow) => {
+    setPassword("");
+    setPasswordTouched(false);
+    setResetTarget(row);
   };
 
   const handleResetPassword = async (event: React.SyntheticEvent<HTMLFormElement>) => {
@@ -190,108 +249,145 @@ export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminView
 
   return (
     <Stack spacing={2}>
-      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: "auto" }}>
-        <Table size="small" sx={{ minWidth: 780 }} aria-label="用户列表">
-          <TableHead>
-            <TableRow>
-              <TableCell variant="head" sx={HEAD_SX}>
-                用户名
-              </TableCell>
-              <TableCell variant="head" sx={HEAD_SX}>
-                显示名
-              </TableCell>
-              <TableCell variant="head" align="right" sx={HEAD_SX}>
-                行程数
-              </TableCell>
-              <TableCell variant="head" align="right" sx={HEAD_SX}>
-                合计里程
-              </TableCell>
-              <TableCell variant="head" sx={HEAD_SX}>
-                最近活跃
-              </TableCell>
-              <TableCell variant="head" sx={HEAD_SX}>
-                状态
-              </TableCell>
-              <TableCell variant="head" sx={HEAD_SX}>
-                操作
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.map((row) => {
-              const isSelf = row.id === currentUserId;
-              const disabled = row.disabledAt !== null;
-              return (
-                <TableRow key={row.id} hover>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {row.username}
-                    </Typography>
-                    {isSelf ? (
-                      <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        当前账号
+      {isDesktop ? (
+        <TableContainer component={Paper} variant="outlined" sx={{ overflowX: "auto" }}>
+          <Table size="small" sx={{ minWidth: 780 }} aria-label="用户列表">
+            <TableHead>
+              <TableRow>
+                <TableCell variant="head" sx={HEAD_SX}>
+                  用户名
+                </TableCell>
+                <TableCell variant="head" sx={HEAD_SX}>
+                  显示名
+                </TableCell>
+                <TableCell variant="head" align="right" sx={HEAD_SX}>
+                  行程数
+                </TableCell>
+                <TableCell variant="head" align="right" sx={HEAD_SX}>
+                  合计里程
+                </TableCell>
+                <TableCell variant="head" sx={HEAD_SX}>
+                  最近活跃
+                </TableCell>
+                <TableCell variant="head" sx={HEAD_SX}>
+                  状态
+                </TableCell>
+                <TableCell variant="head" sx={HEAD_SX}>
+                  操作
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {users.map((row) => {
+                const isSelf = row.id === currentUserId;
+                const disabled = row.disabledAt !== null;
+                return (
+                  <TableRow key={row.id} hover>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {row.username}
                       </Typography>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>{row.displayName}</TableCell>
-                  <TableCell align="right" sx={NUM_SX}>
-                    {row.tripCount}
-                  </TableCell>
-                  <TableCell align="right" sx={NUM_SX}>
-                    {formatKm(row.totalKm)} 公里
-                  </TableCell>
-                  <TableCell>{formatDateTimeLabel(row.lastSeenAt)}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      color={disabled ? "warning" : "success"}
-                      label={disabled ? "已禁用" : "正常"}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
-                      <Button
+                      {isSelf ? (
+                        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                          当前账号
+                        </Typography>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>{row.displayName}</TableCell>
+                    <TableCell align="right" sx={NUM_SX}>
+                      {row.tripCount}
+                    </TableCell>
+                    <TableCell align="right" sx={NUM_SX}>
+                      {formatKm(row.totalKm)} 公里
+                    </TableCell>
+                    <TableCell>{formatDateTimeLabel(row.lastSeenAt)}</TableCell>
+                    <TableCell>
+                      <Chip
                         size="small"
-                        sx={TOUCH_SX}
-                        aria-label={`重置密码：${row.username}`}
-                        onClick={() => {
-                          setPassword("");
-                          setPasswordTouched(false);
-                          setResetTarget(row);
-                        }}
-                      >
-                        重置密码
-                      </Button>
-                      {isSelf ? null : (
-                        <>
-                          <Button
-                            size="small"
-                            color={disabled ? "success" : "warning"}
-                            sx={TOUCH_SX}
-                            aria-label={`${disabled ? "启用" : "禁用"}账号：${row.username}`}
-                            onClick={() => setToggleTarget(row)}
-                          >
-                            {disabled ? "启用" : "禁用"}
-                          </Button>
-                          <Button
-                            size="small"
-                            color="error"
-                            sx={TOUCH_SX}
-                            aria-label={`删除账号：${row.username}`}
-                            onClick={() => setDeleteTarget(row)}
-                          >
-                            删除
-                          </Button>
-                        </>
-                      )}
+                        color={disabled ? "warning" : "success"}
+                        label={disabled ? "已禁用" : "正常"}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <UserActions
+                        row={row}
+                        isSelf={isSelf}
+                        onResetPassword={openResetPassword}
+                        onToggleDisabled={setToggleTarget}
+                        onDelete={setDeleteTarget}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      ) : (
+        <Stack spacing={1.5} component="ul" aria-label="用户列表" sx={{ listStyle: "none", m: 0, p: 0 }}>
+          {users.map((row) => {
+            const isSelf = row.id === currentUserId;
+            const disabled = row.disabledAt !== null;
+            return (
+              <Box component="li" key={row.id}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Stack spacing={1.5}>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {row.username}
+                        </Typography>
+                        <Chip size="small" color={disabled ? "warning" : "success"} label={disabled ? "已禁用" : "正常"} />
+                      </Stack>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: "baseline", flexWrap: "wrap", rowGap: 0.5 }}>
+                        <Typography variant="body2">{row.displayName}</Typography>
+                        {isSelf ? (
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                            当前账号
+                          </Typography>
+                        ) : null}
+                      </Stack>
+                      <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", rowGap: 1 }}>
+                        <Stack spacing={0.5}>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                            行程数
+                          </Typography>
+                          <Typography variant="body2" sx={NUM_SX}>
+                            {row.tripCount}
+                          </Typography>
+                        </Stack>
+                        <Stack spacing={0.5}>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                            合计里程
+                          </Typography>
+                          <Typography variant="body2" sx={NUM_SX}>
+                            {formatKm(row.totalKm)} 公里
+                          </Typography>
+                        </Stack>
+                        <Stack spacing={0.5}>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                            最近活跃
+                          </Typography>
+                          <Typography variant="body2" sx={NUM_SX}>
+                            {formatDateTimeLabel(row.lastSeenAt)}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+                      <UserActions
+                        row={row}
+                        isSelf={isSelf}
+                        onResetPassword={openResetPassword}
+                        onToggleDisabled={setToggleTarget}
+                        onDelete={setDeleteTarget}
+                      />
                     </Stack>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                  </CardContent>
+                </Card>
+              </Box>
+            );
+          })}
+        </Stack>
+      )}
 
       <Dialog open={Boolean(resetTarget)} onClose={closeReset} aria-labelledby="admin-pwd-title" fullWidth maxWidth="xs">
         <form onSubmit={handleResetPassword}>
