@@ -46,7 +46,7 @@ typography:
     fontSize: "0.875rem"
     lineHeight: 1.55
   caption:
-    fontSize: "0.8125rem"
+    fontSize: "0.875rem"
     lineHeight: 1.45
   button:
     fontSize: "0.9375rem"
@@ -101,6 +101,15 @@ components:
   save-bar:
     backgroundColor: "{colors.paper-white}"
     padding: "{spacing.lg}"
+  alert-info:
+    backgroundColor: "{colors.notice-blue-soft}"
+    textColor: "{colors.notice-blue}"
+    rounded: "{rounded.field}"
+    padding: "6px 16px"
+  toast:
+    backgroundColor: "{colors.paper-white}"
+    rounded: "{rounded.field}"
+    padding: "6px 16px"
 ---
 
 # Design System: 途迹 TripTrace
@@ -159,12 +168,13 @@ components:
 - **Section**（650，1rem / 1.4）：卡片内小节标题（「分段里程」「总里程」「常用路线」）。
 - **Body**（400，1rem / 1.6）：节点名、备注、表单内容。
 - **Label**（400–600，0.875rem / 1.55）：说明文字、里程单位、日期、按钮大号文案。
-- **Caption**（400，0.8125rem / 1.45）：页脚版本号这类极次要信息。
+- **Caption**（400，0.875rem / 1.45）：页脚版本号这类极次要信息——字号与 `body2` 同档（14px 地板），靠颜色与位置退后，`caption: 0.8125rem` 那种 13px 的写法已废弃。
 
 ### Named Rules
 **The 14px Floor Rule.** 界面文字不得小于 0.875rem（14px）。MUI 默认的 Chip（13px）与 helperText（13px）都不合格，必须抬到 `body2` 档——户外光线下小字等于不存在。
 **The Tabular Numerals Rule.** 一切里程、数量、日期时间用 `font-variant-numeric: tabular-nums`；数字在刷新时不得左右跳动。
 **The Reading-Not-Pill Rule.** 里程这类**读数**用文字承担：墨色（`text.primary`）+ 650 + 等宽数字，跟汇总页的行读数同一套写法；**不要用蓝色胶囊**把读数包起来——蓝色只表示「可操作 / 已选中」，胶囊留给标签与筛选。只有真的出状态时才用状态色（如「未填里程」用琥珀文字），并把状态写出来。
+**The Grouped-Reading Rule.** 读数一律**千位分隔**：`formatKm` 用模块级 `Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 })` 一处产出（`12435` → `12,350.5`，尾随零去掉），全站不许再手写数字拼接。与它配对的是**解析侧必须吃得下自己吐出来的格式**：`kmState` 容忍千位分隔符与全角逗号，界面上看到的读数可以直接复制回输入框。千位分隔是给人扫的——五位数不分隔要数位。
 
 ## Layout
 
@@ -300,6 +310,13 @@ components:
 - **Toast:** 底部居中 Snackbar，位置抬到保存条之上；用四档语义色（成功/信息/警示/错误），错误停留 6s 且带可操作动作（「撤销」「重试」）。
 - **Dialog:** 圆角 22px，只用于需要确认或受保护输入的操作（删除、重置密码、恢复草稿），打开时焦点进入对话框、Esc 关闭。
 
+### 提示条与单一出路（空态 / 错误兜底）
+- **Shape:** 信息与错误提示统一是 `Alert`（圆角 16px = `radius.field`、软底 + 同色文字，用 Colors 的四档状态色），需要时右侧挂**一个**动作按钮（`Button color="inherit" size="small"`，继承提示条的文字色）。
+- **单一出路:** 一条提示最多一个动作——空态给「去填报」、读不到数据给「重试」、被条件筛空给「清空条件」。两个动作等于没有动作。
+- **错误兜底（视图错误边界）:** 任何一页在渲染期出错都**不能带走整站**：导航与其它分组照常可用，出错的那页显示「这一页暂时打不开」+「重试」；兜底卡只包视图区，重挂载键含当前分组，切换分组不会把兜底卡粘过去。
+- **接口边界先兜一层:** 服务端返回值先在 `api.ts` 洗成合法形状（字段不对就丢这一条、单条行程洗不出来按失败处理），所以正常情况用户看到的是「少一条记录」，而不是兜底卡——兜底卡是最后一道网。
+**The Plain-Recovery Rule.** 出错与空态只说现状 + 一条出路，不暴露实现细节、不写第二句解释；能恢复的给「撤销 / 重试」，不能恢复的说清下一步。排查信息只进控制台。
+
 ## Do's and Don'ts
 
 ### Do:
@@ -308,6 +325,8 @@ components:
 - **Do** 移动端关键操作（加节点、填里程、保存）放在拇指区，`pointer: coarse` 下命中区 ≥44px。
 - **Do** 状态色只在状态上出现，并配套真实文案（「已保存：10月9日 · 25 公里」）。
 - **Do** 空白态只写一句现状；错误态必须给出可操作出路（「重试」「补齐后才能保存」）。
+- **Do** 读数只用 `formatKm` 一处产出（千位分隔 + 最多两位小数 + 等宽数字）；解析侧（`kmState`）容忍千位分隔符与全角逗号，界面上的读数可以直接复制回输入框。
+- **Do** 一条提示最多一个动作：空态「去填报」、读不到数据「重试」、被筛空「清空条件」。
 
 ### Don't:
 - **Don't** 使用大色块英雄区、渐变文字、装饰性玻璃模糊、悬浮卡片阵——这套反例已被用户明确否决。
@@ -315,3 +334,4 @@ components:
 - **Don't** 给卡片加阴影，或用阴影建立层级（层级靠色调与描边）。
 - **Don't** 用小于 14px 的字号承载信息，也不要用灰色把次要信息压到 4.5:1 以下。
 - **Don't** 在界面里写实现细节（存储、框架、部署）或用户已知的解释性句子。
+- **Don't** 在界面上暴露错误详情（堆栈、状态码、字段名）——排查线索只进控制台，界面只说发生了什么与能做什么。
