@@ -122,11 +122,18 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete }:
               spacing={1}
               sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.75 }}
             >
-              <Chip
-                size="small"
-                color={missingKm ? "warning" : "primary"}
-                label={missingKm ? "未填里程" : `${formatKm(trip.totalKm)} 公里`}
-              />
+              {/* 总公里数是「读数」：用墨色数字（与汇总页的读数同一套写法），不用胶囊——蓝色只留给可操作与选中；
+                  只有真的缺里程时才用琥珀这个状态色，并直接把状态写出来 */}
+              <Typography
+                variant="body1"
+                sx={{
+                  fontWeight: 650,
+                  fontVariantNumeric: "tabular-nums",
+                  color: missingKm ? "warning.main" : "text.primary",
+                }}
+              >
+                {missingKm ? "未填里程" : `${formatKm(trip.totalKm)} 公里`}
+              </Typography>
               {trip.source === "import" ? <Chip size="small" color="default" label="导入" /> : null}
               {trip.note ? (
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
@@ -170,7 +177,14 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete }:
       <Typography variant="body2" sx={{ color: "text.secondary" }}>
         {weekdayLabel(date)}
       </Typography>
-      {trailing ? <Chip size="small" label={trailing} sx={{ ml: "auto" }} /> : null}
+      {trailing ? (
+        <Typography
+          variant="body2"
+          sx={{ ml: "auto", color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
+        >
+          {trailing}
+        </Typography>
+      ) : null}
     </Stack>
   );
 

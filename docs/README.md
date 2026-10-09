@@ -20,6 +20,7 @@
 | `changes/` | [0011-query-center.md](changes/0011-query-center.md) | 变更记录 | 已执行 | 汇总页升级为查询中心（时间范围 + 四维聚合 + 下钻）、记录页做明细查询（0.8.0）；两页共用 `lib/query.ts` 口径 |
 | `changes/` | [0012-node-editor-dnd.md](changes/0012-node-editor-dnd.md) | 变更记录 | 已执行 | 路线节点就地改名 + dnd-kit 拖动排序（0.9.0）；节点改按 id 身份、结构变化统一按端点对重建分段；附带 Range Picker 结论 |
 | `changes/` | [0013-shape-language.md](changes/0013-shape-language.md) | 变更记录 | 已执行 | 统一形状语言（0.9.1）：形状令牌、补齐浮层/容器层级、嵌套圆角规则、`corner-shape` 连续曲率增强（含支持面与两处实测缺陷） |
+| `changes/` | [0014-quiet-mileage-reading.md](changes/0014-quiet-mileage-reading.md) | 变更记录 | 已执行 | 记录页的总公里数由蓝色胶囊改为读数写法（0.9.2，`/impeccable quieter`）；缺里程改用状态色文字，当日合计与月度合计同写法 |
 | 同目录 | [../apps/web/DESIGN.md](../apps/web/DESIGN.md) | 设计系统 | 已执行 | 视觉系统的规范来源（令牌 frontmatter + 八节）；侧车在 `apps/web/.impeccable/design.json` |
 | `troubleshooting/` | [0001-auth-and-session-ops.md](troubleshooting/0001-auth-and-session-ops.md) | 排查手册 | 参考 | PBKDF2 迭代上限与 CPU 额度取舍；手动删用户后的会话缓存清理步骤 |
 | `troubleshooting/` | [0002-workspace-tooling-gotchas.md](troubleshooting/0002-workspace-tooling-gotchas.md) | 排查手册 | 参考 | workspaces 拆分后的工具链坑：shim 残留、全局 vite 抢占、Pages 项目创建与自定义域 DNS、TS7 baseUrl |

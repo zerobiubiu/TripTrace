@@ -164,6 +164,7 @@ components:
 ### Named Rules
 **The 14px Floor Rule.** 界面文字不得小于 0.875rem（14px）。MUI 默认的 Chip（13px）与 helperText（13px）都不合格，必须抬到 `body2` 档——户外光线下小字等于不存在。
 **The Tabular Numerals Rule.** 一切里程、数量、日期时间用 `font-variant-numeric: tabular-nums`；数字在刷新时不得左右跳动。
+**The Reading-Not-Pill Rule.** 里程这类**读数**用文字承担：墨色（`text.primary`）+ 650 + 等宽数字，跟汇总页的行读数同一套写法；**不要用蓝色胶囊**把读数包起来——蓝色只表示「可操作 / 已选中」，胶囊留给标签与筛选。只有真的出状态时才用状态色（如「未填里程」用琥珀文字），并把状态写出来。
 
 ## Layout
 
