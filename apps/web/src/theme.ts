@@ -240,7 +240,9 @@ export const theme: Theme = createTheme({
           height: 36,
           borderRadius: 999,
           fontWeight: 600,
-          "@media (pointer: coarse)": { height: 44 },
+          // 触摸目标只对**可交互**的胶囊放大（筛选胶囊有 onClick、条件胶囊有 onDelete）；
+          // 纯状态徽标（管理页的「正常 / 已禁用」、账号页的「当前设备」）不可点，撑到 44px 高会让两个字的标签变成圆点
+          "&.MuiChip-clickable, &.MuiChip-deletable": { "@media (pointer: coarse)": { height: 44 } },
         },
         label: {
           // MUI 默认 13px（size=small 时 12px）：低于 14px 下限，统一抬到 body2

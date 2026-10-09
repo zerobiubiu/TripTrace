@@ -21,7 +21,7 @@ export function Toasts({ toasts, onDismiss }: ToastsProps) {
       open
       autoHideDuration={isError || current.action ? 6000 : 3200}
       onClose={() => onDismiss(current.id)}
-      sx={{ bottom: { xs: "calc(96px + env(safe-area-inset-bottom))", md: 24 } }}
+      sx={{ bottom: { xs: "calc(var(--tt-savebar-h) + 16px + env(safe-area-inset-bottom))", md: 24 } }}
     >
       <Alert
         severity={current.kind}

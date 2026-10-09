@@ -113,7 +113,7 @@ export function EntryView({
       : `这一天已录 ${dayTrips.length} 条 · 合计 ${formatKm(dayKm)} 公里${dayMissing > 0 ? ` · ${dayMissing} 条未填里程` : ""}`;
 
   return (
-    <Box className="tt-entry-grid" sx={{ pb: isDesktop ? 0 : "calc(88px + env(safe-area-inset-bottom))" }}>
+    <Box className="tt-entry-grid" sx={{ pb: isDesktop ? 0 : "calc(var(--tt-savebar-h) + 8px + env(safe-area-inset-bottom))" }}>
       <Stack spacing={1.5}>
         <Card>
           <CardContent>

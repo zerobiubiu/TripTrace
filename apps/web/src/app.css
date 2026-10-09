@@ -6,6 +6,15 @@
 
 :root {
   color-scheme: light dark;
+  /* 底部固定保存条的高度约定：填报页按它让位、提示条按它上抬。
+     横屏手机（矮视口）保存条更薄，这个值必须一起变小，否则底部会多留一块空白、提示也会浮得太高。 */
+  --tt-savebar-h: 80px;
+}
+
+@media (max-height: 480px) {
+  :root {
+    --tt-savebar-h: 56px;
+  }
 }
 
 html,
