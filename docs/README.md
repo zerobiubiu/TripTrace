@@ -30,6 +30,7 @@
 | `changes/` | [0021-onboarding-pass.md](changes/0021-onboarding-pass.md) | 变更记录 | 已执行 | 首次进入与空态引导（0.11.4，`/impeccable onboard`）：登录屏两行价值说明、记录/汇总「从未有数据」给「去填报」出路、填报提示按历史切换；刻意不做 tour |
 | `changes/` | [0022-design-ledger-refresh.md](changes/0022-design-ledger-refresh.md) | 变更记录 | 已执行 | 设计台账刷新（`/impeccable document` refresh 模式，**版本不递增**）：caption 13px→14px 纠正、新增 Grouped-Reading / Plain-Recovery 两条命名规则与「提示条与单一出路」一节、侧车 colorMeta 10→23 并修掉 `toast` 悬引 |
 | `changes/` | [0023-reuse-extraction.md](changes/0023-reuse-extraction.md) | 变更记录 | 已执行 | 复用模式提取（0.11.5，`/impeccable extract`）：`Notice`（7 处提示条）、`FilterRow`（4 处条件行）、`touchTargetSx`（2 处定义）收成唯一实现；顺带修好动作按钮 36→44px；入口 chunk −9.6 kB |
+| `changes/` | [0024-github-open-source-and-ci.md](changes/0024-github-open-source-and-ci.md) | 变更记录 | 部分执行 | 部署 0.11.5 + GitHub 开源（`zerobiubiu/TripTrace`，MIT）+ Workers Builds 接线：已取证账号/script tag/仓库 id 与阻塞点（GitHub App 待授权），授权后的收尾步骤已写明 |
 | 同目录 | [../apps/web/DESIGN.md](../apps/web/DESIGN.md) | 设计系统 | 已执行 | 视觉系统的规范来源（令牌 frontmatter + 八节）；侧车在 `apps/web/.impeccable/design.json` |
 | `troubleshooting/` | [0001-auth-and-session-ops.md](troubleshooting/0001-auth-and-session-ops.md) | 排查手册 | 参考 | PBKDF2 迭代上限与 CPU 额度取舍；手动删用户后的会话缓存清理步骤 |
 | `troubleshooting/` | [0002-workspace-tooling-gotchas.md](troubleshooting/0002-workspace-tooling-gotchas.md) | 排查手册 | 参考 | workspaces 拆分后的工具链坑：shim 残留、全局 vite 抢占、Pages 项目创建与自定义域 DNS、TS7 baseUrl |
