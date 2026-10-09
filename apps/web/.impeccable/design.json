@@ -515,7 +515,7 @@
       "name": "提示条 + 单一出路 Alert（空态 / 错误兜底）",
       "kind": "custom",
       "refersTo": "alert-info",
-      "description": "空态与错误态共用：一句现状 + 最多一个动作按钮（「去填报」/「重试」/「清空条件」）。视图错误边界的兜底卡也是这个形态。",
+      "description": "空态与错误态共用：一句现状 + 最多一个动作按钮（「去填报」/「重试」/「清空条件」）。唯一实现是 components/Notice.tsx（7 处调用点：记录页 ×2、汇总页、账号页、管理页、App ×2、视图错误边界）；动作按钮自带 44px 触摸地板。",
       "html": "<div class=\"ds-alert\" role=\"alert\"><span class=\"ds-alert__text\">还没有行程记录。</span><button class=\"ds-alert__action\">去填报</button></div>",
       "css": ".ds-alert { display: flex; align-items: center; gap: 8px; padding: 6px 16px; background: #E7F0FB; color: #0B6BCB; border-radius: 16px; font-size: 0.875rem; line-height: 1.45; font-family: inherit; } .ds-alert__text { flex: 1; min-width: 0; } .ds-alert__action { background: transparent; border: none; color: inherit; font: inherit; font-weight: 600; padding: 4px 8px; border-radius: 10px; cursor: pointer; } .ds-alert__action:hover { background: rgba(11, 107, 203, 0.08); } .ds-alert__action:focus-visible { outline: 2px solid #1E4FCB; outline-offset: 2px; }"
     }

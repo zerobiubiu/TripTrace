@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -10,6 +9,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { FilterRow } from "../components/FilterRow";
+import { Notice } from "../components/Notice";
 import { PillGroup } from "../components/PillGroup";
 import { RangeControl } from "../components/RangeControl";
 import { TripCard } from "../components/TripCard";
@@ -146,16 +147,10 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete, o
             onChange={(event) => onFilterChange({ ...filter, keyword: event.target.value })}
             fullWidth
           />
-          <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", columnGap: 1, rowGap: 0.75 }}>
-            <Typography variant="body2" sx={{ color: "text.secondary", minWidth: "3rem" }}>
-              排序
-            </Typography>
+          <FilterRow label="排序">
             <PillGroup label="排序" options={SORT_OPTIONS} value={sort} onChange={setSort} />
-          </Stack>
-          <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", columnGap: 1, rowGap: 0.75 }}>
-            <Typography variant="body2" sx={{ color: "text.secondary", minWidth: "3rem" }}>
-              里程
-            </Typography>
+          </FilterRow>
+          <FilterRow label="里程">
             <PillGroup
               label="里程筛选"
               options={[
@@ -165,7 +160,7 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete, o
               value={filter.missingOnly ? "missing" : "any"}
               onChange={(value) => onFilterChange({ ...filter, missingOnly: value === "missing" })}
             />
-          </Stack>
+          </FilterRow>
         </Stack>
 
         <Stack
@@ -212,16 +207,9 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete, o
     return (
       <Box className="tt-query-grid">
         {queryCard}
-        <Alert
-          severity="info"
-          action={
-            <Button color="inherit" size="small" onClick={onCreate}>
-              去填报
-            </Button>
-          }
-        >
+        <Notice severity="info" action={{ label: "去填报", run: onCreate }}>
           还没有行程记录。
-        </Alert>
+        </Notice>
       </Box>
     );
   }
@@ -231,16 +219,9 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete, o
       {queryCard}
 
       {matched.length === 0 ? (
-        <Alert
-          severity="info"
-          action={
-            <Button color="inherit" size="small" onClick={clearConditions}>
-              清空条件
-            </Button>
-          }
-        >
+        <Notice severity="info" action={{ label: "清空条件", run: clearConditions }}>
           没有匹配的记录，换个范围或去掉条件试试。
-        </Alert>
+        </Notice>
       ) : null}
 
       {sort === "km" ? (

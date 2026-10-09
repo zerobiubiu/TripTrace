@@ -28,7 +28,9 @@ import {
 import { useTheme } from "@mui/material/styles";
 import type { AdminUserRow } from "@triptrace/contracts";
 import { api, isUnauthorized } from "../api";
+import { Notice } from "../components/Notice";
 import { formatDateTimeLabel, formatKm } from "../lib/format";
+import { touchTargetSx } from "../theme";
 
 /** 轻提示：severity 决定提示样式，action 用于可恢复操作。 */
 type Notify = (
@@ -43,8 +45,6 @@ interface AdminViewProps {
   currentUserId: string;
 }
 
-/** 主题桌面端按钮只有 40px 高，这里保证可点区域 ≥44px。 */
-const TOUCH_SX = { minHeight: 44 };
 /** 表头不折行（「行程数」「合计里程」在窄屏会被拆成两行）。 */
 const HEAD_SX = { fontWeight: 600, whiteSpace: "nowrap" } as const;
 /** 数字列右对齐 + 等宽数字，与全站读数规则一致。 */
@@ -68,7 +68,7 @@ function UserActions({ row, isSelf, onResetPassword, onToggleDisabled, onDelete 
     <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
       <Button
         size="small"
-        sx={TOUCH_SX}
+        sx={touchTargetSx}
         aria-label={`重置密码：${row.username}`}
         onClick={() => onResetPassword(row)}
       >
@@ -79,13 +79,13 @@ function UserActions({ row, isSelf, onResetPassword, onToggleDisabled, onDelete 
           <Button
             size="small"
             color={disabled ? "success" : "warning"}
-            sx={TOUCH_SX}
+            sx={touchTargetSx}
             aria-label={`${disabled ? "启用" : "禁用"}账号：${row.username}`}
             onClick={() => onToggleDisabled(row)}
           >
             {disabled ? "启用" : "禁用"}
           </Button>
-          <Button size="small" color="error" sx={TOUCH_SX} aria-label={`删除账号：${row.username}`} onClick={() => onDelete(row)}>
+          <Button size="small" color="error" sx={touchTargetSx} aria-label={`删除账号：${row.username}`} onClick={() => onDelete(row)}>
             删除
           </Button>
         </>
@@ -216,16 +216,9 @@ export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminView
 
   if (loadError) {
     return (
-      <Alert
-        severity="error"
-        action={
-          <Button color="inherit" size="small" sx={TOUCH_SX} aria-label="重试加载用户列表" onClick={() => void loadUsers()}>
-            重试
-          </Button>
-        }
-      >
+      <Notice severity="error" action={{ label: "重试", run: () => void loadUsers(), ariaLabel: "重试加载用户列表" }}>
         {loadError}
-      </Alert>
+      </Notice>
     );
   }
 
@@ -410,10 +403,10 @@ export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminView
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={closeReset} disabled={busy} sx={TOUCH_SX} aria-label="取消重置密码">
+            <Button onClick={closeReset} disabled={busy} sx={touchTargetSx} aria-label="取消重置密码">
               取消
             </Button>
-            <Button type="submit" variant="contained" disabled={busy} sx={TOUCH_SX} aria-label="确认重置密码">
+            <Button type="submit" variant="contained" disabled={busy} sx={touchTargetSx} aria-label="确认重置密码">
               {busy ? "提交中…" : "重置"}
             </Button>
           </DialogActions>
@@ -440,7 +433,7 @@ export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminView
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button
             disabled={busy}
-            sx={TOUCH_SX}
+            sx={touchTargetSx}
             aria-label={toggleDisable ? "取消禁用账号" : "取消启用账号"}
             onClick={() => setToggleTarget(null)}
           >
@@ -450,7 +443,7 @@ export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminView
             variant="contained"
             color={toggleDisable ? "warning" : "success"}
             disabled={busy}
-            sx={TOUCH_SX}
+            sx={touchTargetSx}
             aria-label={toggleDisable ? "确认禁用账号" : "确认启用账号"}
             onClick={() => void handleToggleDisabled()}
           >
@@ -476,14 +469,14 @@ export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminView
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button disabled={busy} sx={TOUCH_SX} aria-label="取消删除用户" onClick={() => setDeleteTarget(null)}>
+          <Button disabled={busy} sx={touchTargetSx} aria-label="取消删除用户" onClick={() => setDeleteTarget(null)}>
             取消
           </Button>
           <Button
             color="error"
             variant="contained"
             disabled={busy}
-            sx={TOUCH_SX}
+            sx={touchTargetSx}
             aria-label="确认删除用户"
             onClick={() => void handleDelete()}
           >

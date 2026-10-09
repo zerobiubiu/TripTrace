@@ -3,6 +3,17 @@
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。项目版本以根 `package.json` 为唯一事实来源，
 `apps/api/wrangler.jsonc` 的 `vars.APP_VERSION` 由 `bun run check` 门禁校验一致性；前端版本由 Vite 注入。
 
+## 0.11.5
+
+复用模式提取（`/impeccable extract`）：三处重复收成唯一实现，顺带补上一处触摸地板缺口。
+
+- **提示条只有一个实现**（新增 `components/Notice.tsx`）：空态「去填报」、读不到数据「重试」、被条件筛空「清空条件」、视图兜底卡共 **7 处**此前各写一份 `Alert + Button`，现在统一为「一句现状 + 至多一个动作」。
+- **条件行只有一个实现**（新增 `components/FilterRow.tsx`）：记录页与汇总页的「小标签 + 胶囊组」共 4 处，标签列宽不再各写一遍。
+- **触摸地板收进主题**（`theme.ts` 导出 `touchTargetSx`）：`AccountView` 与 `AdminView` 各写了一份 `TOUCH_SX`，14 处使用现在共用一个导出。
+- **顺带修好**：空态与「读不到数据」的动作按钮此前是 MUI `size="small"`（36px），低于 44px 触摸地板；现在统一 44px（实测）。
+- **刻意不抽**（有计数依据，见 `docs/changes/0023`）：桌面判定只有 2 处（< 3）；`Suspense + ViewErrorBoundary` 骨架 5 处但只省三行、且会把加载语义藏进包装器；Toasts 的「撤销」是浮层瞬时反馈，与页面提示条意图不同。
+- 验证：7 处提示条与 4 处条件行行为等价（含「清空条件」可用、兜底卡仍拦得住真崩）、0 浏览器报错；`detect` 0 命中、`bun run check` 通过；入口 chunk **650.78 → 641.19 kB（−9.6 kB）**。
+
 ## 0.11.4
 
 首次进入与空态引导（`/impeccable onboard`）：把新用户尽快送到「记完第一笔看见自动补全与当日合计」的那一刻。

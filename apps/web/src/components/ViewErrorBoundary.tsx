@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { Alert, Box, Button, type SxProps, type Theme } from "@mui/material";
+import { Box, type SxProps, type Theme } from "@mui/material";
+import { Notice } from "./Notice";
 
 interface ViewErrorBoundaryProps {
   children: ReactNode;
@@ -46,16 +47,9 @@ export class ViewErrorBoundary extends Component<ViewErrorBoundaryProps, ViewErr
     }
     return (
       <Box sx={this.props.sx}>
-        <Alert
-          severity="error"
-          action={
-            <Button color="inherit" size="small" onClick={this.handleRetry}>
-              重试
-            </Button>
-          }
-        >
+        <Notice severity="error" action={{ label: "重试", run: this.handleRetry }}>
           这一页暂时打不开。可以点「重试」重新载入记录；如果反复出现，刷新页面后把发生的情况告诉我们。
-        </Alert>
+        </Notice>
       </Box>
     );
   }

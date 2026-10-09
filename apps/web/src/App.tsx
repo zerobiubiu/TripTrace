@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { api, isNetworkFailure, isUnauthorized } from "./api";
 import { PasswordDialog } from "./components/PasswordDialog";
+import { Notice } from "./components/Notice";
 import { Toasts } from "./components/Toasts";
 import { ViewErrorBoundary } from "./components/ViewErrorBoundary";
 import { TAB_ITEMS, TopBar } from "./components/TopBar";
@@ -381,16 +382,9 @@ export function App() {
                 {tripsState === "loading" ? (
                   <ViewSkeleton />
                 ) : tripsState === "error" ? (
-                  <Alert
-                    severity="error"
-                    action={
-                      <Button color="inherit" size="small" onClick={() => void loadTrips()}>
-                        重试
-                      </Button>
-                    }
-                  >
+                  <Notice severity="error" action={{ label: "重试", run: () => void loadTrips() }}>
                     记录暂时读不到，请检查网络后重试。
-                  </Alert>
+                  </Notice>
                 ) : (
                   <RecordsView
                     trips={trips}
@@ -413,16 +407,9 @@ export function App() {
                 {tripsState === "loading" ? (
                   <ViewSkeleton />
                 ) : tripsState === "error" ? (
-                  <Alert
-                    severity="error"
-                    action={
-                      <Button color="inherit" size="small" onClick={() => void loadTrips()}>
-                        重试
-                      </Button>
-                    }
-                  >
+                  <Notice severity="error" action={{ label: "重试", run: () => void loadTrips() }}>
                     汇总暂时读不到，请检查网络后重试。
-                  </Alert>
+                  </Notice>
                 ) : (
                   <StatsView
                     trips={trips}

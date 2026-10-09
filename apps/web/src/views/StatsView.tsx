@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { Alert, Box, Button, Card, CardContent, Chip, LinearProgress, ListItemButton, Stack, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Chip, LinearProgress, ListItemButton, Stack, Typography } from "@mui/material";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import { FilterRow } from "../components/FilterRow";
+import { Notice } from "../components/Notice";
 import { PillGroup } from "../components/PillGroup";
 import { RangeControl } from "../components/RangeControl";
 import { formatKm, todayIso } from "../lib/format";
@@ -165,18 +167,12 @@ export function StatsView({ trips, onDrill, onCreate }: StatsViewProps) {
           <RangeControl value={range} onChange={setRange} />
 
           <Stack spacing={1} sx={{ mt: 1.5 }}>
-            <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", columnGap: 1, rowGap: 0.75 }}>
-              <Typography variant="body2" sx={{ color: "text.secondary", minWidth: "3rem" }}>
-                维度
-              </Typography>
+            <FilterRow label="维度">
               <PillGroup label="统计维度" options={DIMENSIONS} value={dimension} onChange={handleDimension} />
-            </Stack>
-            <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", columnGap: 1, rowGap: 0.75 }}>
-              <Typography variant="body2" sx={{ color: "text.secondary", minWidth: "3rem" }}>
-                排序
-              </Typography>
+            </FilterRow>
+            <FilterRow label="排序">
               <PillGroup label="排序" options={SORT_OPTIONS[dimension]} value={sort} onChange={setSort} />
-            </Stack>
+            </FilterRow>
           </Stack>
 
           <Box sx={{ mt: 2, pt: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
@@ -235,16 +231,9 @@ export function StatsView({ trips, onDrill, onCreate }: StatsViewProps) {
 
           {rows.length === 0 ? (
             trips.length === 0 ? (
-              <Alert
-                severity="info"
-                action={
-                  <Button color="inherit" size="small" onClick={onCreate}>
-                    去填报
-                  </Button>
-                }
-              >
+              <Notice severity="info" action={{ label: "去填报", run: onCreate }}>
                 还没有行程记录。
-              </Alert>
+              </Notice>
             ) : (
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 这一范围还没有记录

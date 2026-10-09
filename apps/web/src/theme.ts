@@ -11,6 +11,13 @@
 import { createTheme, type Theme } from "@mui/material/styles";
 
 /**
+ * 行内动作按钮的触摸地板（≥44px）。MUI 的 `size="small"` 是 36px，低于地板；
+ * 表格行、提示条动作这类「一屏里有很多个」的按钮必须显式抬起来。
+ * （此前 AccountView 与 AdminView 各写了一份同名常量，见 0023 提取记录。）
+ */
+export const touchTargetSx = { minHeight: 44 } as const;
+
+/**
  * 形状令牌（shape tokens）：整站的圆角只说这几个数，组件不再各写各的。
  *
  * 原则是**曲率一致，而不是半径相等**：半径随「层的大小」递增（图标 → 控件 → 字段 → 内容 → 浮层），

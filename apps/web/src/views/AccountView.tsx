@@ -16,7 +16,9 @@ import {
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import type { SessionRow } from "@triptrace/contracts";
 import { api, isUnauthorized } from "../api";
+import { Notice } from "../components/Notice";
 import { formatDateTimeLabel, normalizeName, userAgentLabel } from "../lib/format";
+import { touchTargetSx } from "../theme";
 import type { UserDto } from "../types";
 
 /** 轻提示：severity 决定提示样式，action 用于可恢复操作。 */
@@ -38,9 +40,6 @@ interface AccountViewProps {
   onSessionInvalid?: () => void;
 }
 
-/** 主题桌面端按钮只有 40px 高，这里保证可点区域 ≥44px。 */
-const TOUCH_SX = { minHeight: 44 };
-
 interface SessionsCardProps {
   /** null = 加载中 */
   sessions: SessionRow[] | null;
@@ -58,16 +57,9 @@ interface SessionsCardProps {
 export function SessionsCard({ sessions, error, revokingId, onRetry, onRevoke }: SessionsCardProps) {
   if (error) {
     return (
-      <Alert
-        severity="error"
-        action={
-          <Button color="inherit" size="small" sx={TOUCH_SX} aria-label="重试加载登录设备" onClick={onRetry}>
-            重试
-          </Button>
-        }
-      >
+      <Notice severity="error" action={{ label: "重试", run: onRetry, ariaLabel: "重试加载登录设备" }}>
         {error}
-      </Alert>
+      </Notice>
     );
   }
 
@@ -107,7 +99,7 @@ export function SessionsCard({ sessions, error, revokingId, onRetry, onRevoke }:
               <Button
                 size="small"
                 color="error"
-                sx={TOUCH_SX}
+                sx={touchTargetSx}
                 disabled={revokingId === session.id}
                 aria-label={`登出该设备：${userAgentLabel(session.userAgent)}`}
                 onClick={() => onRevoke(session)}
@@ -219,7 +211,7 @@ export function AccountView({ user, onOpenPassword, notify, onUserChanged, onSes
             />
             <Button
               variant="contained"
-              sx={{ ...TOUCH_SX, minWidth: 96 }}
+              sx={{ ...touchTargetSx, minWidth: 96 }}
               disabled={!canSave}
               aria-label="保存显示名"
               onClick={() => void handleSaveName()}
@@ -248,7 +240,7 @@ export function AccountView({ user, onOpenPassword, notify, onUserChanged, onSes
       <Button
         variant="outlined"
         startIcon={<LockOutlined fontSize="small" />}
-        sx={{ ...TOUCH_SX, alignSelf: "flex-start" }}
+        sx={{ ...touchTargetSx, alignSelf: "flex-start" }}
         aria-label="修改密码"
         onClick={onOpenPassword}
       >
