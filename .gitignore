@@ -16,5 +16,8 @@ worker-configuration.d.ts
 
 # 宿主 MCP 配置：内含本机绑定的绝对路径，不入库（AOCI 文档亦要求宿主配置不提交）
 .omp/mcp.json
+# 一次性运维产物：KV 键名单里含用户 id 与会话 token 的哈希，是本机产物（AOCI 亦标注「不应长期留在仓库」）
+apps/.wrangler-keys.json
+apps/.wrangler-kv-delete.json
 # init 为 AGENTS.md 追加 aoci 区块时留下的原文备份（本机产物）
 AGENTS.md.backup.*
