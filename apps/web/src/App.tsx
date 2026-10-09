@@ -396,6 +396,7 @@ export function App() {
                     trips={trips}
                     filter={recordsFilter}
                     onFilterChange={setRecordsFilter}
+                    onCreate={() => setTab("entry")}
                     onEdit={(trip) => {
                       setForm(tripToForm(trip, index));
                       setTab("entry");
@@ -425,6 +426,7 @@ export function App() {
                 ) : (
                   <StatsView
                     trips={trips}
+                    onCreate={() => setTab("entry")}
                     onDrill={(filter) => {
                       setRecordsFilter(filter);
                       setTab("records");

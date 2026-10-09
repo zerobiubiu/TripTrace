@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Box, Button, Card, CardContent, Chip, LinearProgress, ListItemButton, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Chip, LinearProgress, ListItemButton, Stack, Typography } from "@mui/material";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { PillGroup } from "../components/PillGroup";
@@ -64,9 +64,11 @@ interface StatsViewProps {
   trips: Trip[];
   /** 点某一行 → 带着该行的条件跳到记录页看明细 */
   onDrill: (filter: TripFilter) => void;
+  /** 一条记录都没有时的出路：去填报记第一笔（空态即引导，不另做引导流程） */
+  onCreate: () => void;
 }
 
-export function StatsView({ trips, onDrill }: StatsViewProps) {
+export function StatsView({ trips, onDrill, onCreate }: StatsViewProps) {
   const [range, setRange] = useState<DateRange>(() => resolveRange("year", { today: todayIso() }));
   const [dimension, setDimension] = useState<Dimension>("month");
   const [sort, setSort] = useState<SortKey>(DEFAULT_SORT.month);
@@ -232,9 +234,22 @@ export function StatsView({ trips, onDrill }: StatsViewProps) {
           </Stack>
 
           {rows.length === 0 ? (
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              这一范围还没有记录
-            </Typography>
+            trips.length === 0 ? (
+              <Alert
+                severity="info"
+                action={
+                  <Button color="inherit" size="small" onClick={onCreate}>
+                    去填报
+                  </Button>
+                }
+              >
+                还没有行程记录。
+              </Alert>
+            ) : (
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                这一范围还没有记录
+              </Typography>
+            )
           ) : (
             <>
               <Stack spacing={0.5}>

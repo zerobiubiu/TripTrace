@@ -39,6 +39,8 @@ interface RecordsViewProps {
   onFilterChange: (filter: TripFilter) => void;
   onEdit: (trip: Trip) => void;
   onDelete: (trip: Trip) => void;
+  /** 一条记录都没有时的出路：去填报记第一笔（空态即引导，不另做引导流程） */
+  onCreate: () => void;
 }
 
 interface DayGroup {
@@ -80,7 +82,7 @@ function groupTrips(trips: Trip[]): MonthGroup[] {
     }));
 }
 
-export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete }: RecordsViewProps) {
+export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete, onCreate }: RecordsViewProps) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [sort, setSort] = useState<RecordSort>("recent");
 
@@ -210,7 +212,16 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete }:
     return (
       <Box className="tt-query-grid">
         {queryCard}
-        <Alert severity="info">还没有行程记录，去「填报」添加第一条吧。</Alert>
+        <Alert
+          severity="info"
+          action={
+            <Button color="inherit" size="small" onClick={onCreate}>
+              去填报
+            </Button>
+          }
+        >
+          还没有行程记录。
+        </Alert>
       </Box>
     );
   }

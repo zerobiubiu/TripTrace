@@ -79,6 +79,9 @@ export function EntryView({
   const quickRoutes = useMemo(() => recentRoutes(index, trips, 6), [index, trips]);
   const dayTrips = useMemo(() => trips.filter((trip) => trip.date === form.date), [trips, form.date]);
 
+  /** 还没有任何行程时，节点候选必定是空的：所有「从常用里选」的提示都要让位给「直接打字」。 */
+  const hasHistory = trips.length > 0;
+
   const issues = formKmIssues(form);
   const nameIssues = formNodeNameIssues(form);
   const totalKm = formTotalKm(form);
@@ -156,10 +159,15 @@ export function EntryView({
             <Typography variant="h3" component="h3" sx={{ mb: 0.5 }}>
               路线（顺序与分段里程）
             </Typography>
+            {/* 还没有任何历史时不要承诺「可以从常用里选」——候选是空的（实测：点节点名直接进输入态） */}
             <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
               {form.nodes.length === 0
-                ? "还没有节点，例如：家 → 圣润 → 天九。点「添加节点」开始，节点名可以先从常用里选。"
-                : "点节点名可从常用节点里选（不会弹键盘）；右侧键盘图标才进入手动输入。拖左侧手柄调整顺序。"}
+                ? hasHistory
+                  ? "还没有节点，例如：家 → 圣润 → 天九。点「添加节点」开始，节点名可以先从常用里选。"
+                  : "还没有节点。点「添加节点」，节点名直接打字就行——往后就会出现在候选里。"
+                : hasHistory
+                  ? "点节点名可从常用节点里选（不会弹键盘）；右侧键盘图标才进入手动输入。拖左侧手柄调整顺序。"
+                  : "点节点名直接打字（不会弹键盘）；拖左侧手柄调整顺序。"}
             </Typography>
 
             {form.nodes.length > 0 ? (

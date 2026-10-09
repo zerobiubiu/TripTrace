@@ -30,7 +30,7 @@
     }
   ],
   "vars": {
-    "APP_VERSION": "0.11.3",
+    "APP_VERSION": "0.11.4",
     "PBKDF2_ITERATIONS": "100000",
     "ADMIN_USERNAMES": "zerobiubiu"
   },

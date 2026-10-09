@@ -93,6 +93,17 @@ export function AuthScreen({ signupCodeRequired, version, onAuthenticated }: Aut
               {isRegister ? "创建账号" : "登录途迹"}
             </Typography>
 
+            {/* 首次进入的人（同事拿到链接）只看到表单不知道这是什么；两行说清「记什么、省什么」，
+                不写实现细节，也不做引导流程——这个产品本身只有四个分组。 */}
+            <Stack spacing={0.5}>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                记出差路线与里程：打开就是今天。
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                常跑的路线下次一键带出，月末不用手算。
+              </Typography>
+            </Stack>
+
             <ToggleButtonGroup
               exclusive
               fullWidth
