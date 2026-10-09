@@ -52,11 +52,12 @@ typography:
     fontSize: "0.9375rem"
     fontWeight: 600
 rounded:
-  icon: "8px"
-  button: "10px"
-  input: "12px"
-  card: "14px"
-  dialog: "16px"
+  icon: "10px"
+  inner: "12px"
+  control: "14px"
+  field: "16px"
+  content: "20px"
+  floating: "22px"
   pill: "999px"
 spacing:
   xs: "4px"
@@ -69,7 +70,7 @@ components:
   button-primary:
     backgroundColor: "{colors.highway-blue}"
     textColor: "{colors.paper-white}"
-    rounded: "{rounded.button}"
+    rounded: "{rounded.control}"
     padding: "0 16px"
     height: "40px"
   button-primary-hover:
@@ -77,7 +78,7 @@ components:
   button-outlined:
     backgroundColor: "transparent"
     textColor: "{colors.highway-blue}"
-    rounded: "{rounded.button}"
+    rounded: "{rounded.control}"
     padding: "0 16px"
     height: "40px"
   chip-node:
@@ -87,11 +88,11 @@ components:
     height: "36px"
   card-outlined:
     backgroundColor: "{colors.paper-white}"
-    rounded: "{rounded.card}"
+    rounded: "{rounded.content}"
     padding: "{spacing.lg}"
   input-outlined:
     backgroundColor: "transparent"
-    rounded: "{rounded.input}"
+    rounded: "{rounded.field}"
     height: "48px"
   nav-tab:
     textColor: "{colors.ink-muted}"
@@ -171,7 +172,7 @@ components:
 - **容器**：页面 `maxWidth 1240`，水平内边距 16px（`px: 2`）；卡片之间 12px（Stack `spacing: 1.5`），卡片内边距 14px。
 - **导航**：四个分组（填报 / 记录 / 汇总 / 导入）内联在顶部标题栏，移动端与桌面端同形态；账号与管理员入口放在标题栏的账号菜单里。
 - **录入顺序**：日期 → 路线节点（链式芯片 + 输入）→ 分段里程（每段必填）→ 总里程（只读合计）→ 备注 → 保存。
-- **断点**：默认单列；≥900px 内容居中、密度提高、保存按钮回到表单内；≥1180px 填报页两列（表单 + 常用路线/当日记录），汇总页两列。
+- **断点**：默认单列；≥900px 内容居中、密度提高、保存按钮回到表单内；≥1180px 填报页两列（表单 + 常用路线/当日记录）。汇总与记录**保持单列**（查询条件在上、结果在下）——宽屏把结果列表拉宽比并排更好扫。
 - **移动端固定层**：填报页底部常驻「总里程 + 保存」条（`position: fixed`，含 `env(safe-area-inset-bottom)`），内容区为其预留 96px。
 - **节奏**：组内 4–8px，组间 12–16px，标题上方留白大于下方。
 
@@ -188,12 +189,42 @@ components:
 
 ## Shapes
 
-圆角随「层的大小」递增，形成一致的形式语言：**品牌图标 8px**（26px 图标 ≈ 31%，接近系统图标的超椭圆比例，是品牌资产的固定处理）→ 按钮 10px → 输入/提示 12px → 卡片 14px → 对话框 16px；胶囊（默认里程芯片、进度条）用 999px 全圆。所有边界都是 1px 实线（`rule-slate` / `night-rule`），输入框描边对比度 ≥3:1（浅 4.55:1 / 深 3.87:1）。不用虚线、不用双层边框、不用锐角。
+圆角是一条**语言**，不是一串数值：**曲率一致，而不是半径相等**。半径随「层的大小」递增，但整站共享同一条曲线族。
+
+### Shape Tokens（`apps/web/src/theme.ts` 的 `radius`）
+
+| 令牌 | 值 | 用在哪 |
+| --- | --- | --- |
+| `icon` | 10px | 品牌图标（26 / 30px 的小方块，约 38%） |
+| `inner` | 12px | 嵌在浮层里的项（菜单项、自动完成选项）；提示气泡 Tooltip 用 10px |
+| `control` | 14px | 按钮、图标按钮、列表行、卡片里的软色块行、节点行、分段行、ToggleButton |
+| `field` | 16px | 输入框、Alert、Snackbar、Skeleton |
+| `content` | 20px | 卡片、表格容器（AdminView 的用户表） |
+| `floating` | 22px | 对话框、菜单 / Popover / 自动完成纸面（浮层的 `paper`） |
+| `pill` | 999px | 芯片、进度条（真胶囊，保持真圆） |
+
+**档位是按「感知半径」定的**：超椭圆曲线下同半径的角看起来比圆弧更小（Apple 的连续圆角要放大 1.2–1.5 倍才与圆弧等感），所以这组值比「纯圆弧时代」的常用值大一档——按钮 14/40px ≈ 35%、字段 16/48px ≈ 33%，与 iOS 连续圆角的区间相符。
+
+**嵌套规则：** 内层不超过外层；**贴边**（inset ≈ 0）时内层必须 ≤ 外层，否则它的圆角会探出外层的曲线——菜单项与自动完成选项取「外层 − 内边距」的同心值（浮层 22 − 内边距 10 = **12**），所以菜单列表与自动完成纸面有 10px 内边距。留有足够内边距（≥ 外层半径的约一半）时按各自的层级取值即可，不必小于外层：节点行（14）里的输入框（16）就是这样，实测不探出。整宽 chrome（顶部导航、底部保存条）**不吃圆角**，保持直角贴边。
+
+**两个坑（都实测踩过）：**
+1. `sx` 里的 `borderRadius: <number>` 会被 MUI 乘上 `shape.borderRadius`（`borderRadius: 2` = 24px）。视图里一律用字符串令牌（`radius.control`），theme 的 `styleOverrides` 里才用数字。
+2. **不要广谱覆盖 `MuiPaper.root`**：它的选择器（`.MuiPaper-root.MuiPaper-rounded`）比 `MuiCard.root` 多一个类，会把卡片从 14px 顶成 16px，也会盖掉 `square` 纸面（底部保存条一度变成 16px 圆角浮条）。浮层圆角要**逐组件**声明在 `MuiDialog / MuiMenu / MuiPopover / MuiDrawer / MuiAutocomplete` 的 `paper` 上；以后新增浮层记得点一下 `radius.floating`。整宽 chrome 保持直角。
+
+### 连续曲率（continuous curvature）
+
+`border-radius` 画的是**圆弧**：弧与直边之间只有 G1 接续；Apple 那种连续曲率是**超椭圆**（G2）。所以本项目的做法是两层：
+
+- **半径与层级**（上面那张表 + 嵌套规则）：所有浏览器一致，这是形状语言的主体。
+- **曲线**（增强层）：在 `MuiCssBaseline` 里用一条 `@supports (corner-shape: squircle)` 规则把全站的角换成超椭圆——`corner-shape: squircle` 即 `superellipse(2)`（曲线 x²ᴷ + y²ᴷ = 1，K=2；K 越大越方，K=2.5 更接近 Apple 的五次超椭圆）。**一处声明覆盖全站**（含 MUI 内部结构与以后新增的组件），组件不必各写一份。CSS 的边框、外轮廓、阴影、背景、`overflow` 会跟随角形，所以描边与焦点环自动同形。
+- **例外保持真圆**：芯片（999px）、进度条、头像、删除图标标记为 `corner-shape: round`——超椭圆会把胶囊的端帽改形，Apple 也保留正圆头像与胶囊芯片。
+- **支持面（MDN BCD 实测）**：Chrome / Edge **139+** 已支持；Safari 与 Firefox 目前仅在预览版（Technology Preview）里。因此这是**纯增强**：不支持的浏览器继续画圆弧，半径、层级、布局、状态完全一致；本项目支持基线（Chrome ≥117 / Safari ≥17）不变。在这套 8–16px 的半径下，两者的差别很细微——曲率语言主要由层级与半径差承载，超椭圆是收尾那一层。
+- **没有采用的做法**：用 SVG 蒙版/`clip-path` 画每尺寸的超椭圆——蒙版会随元素尺寸拉伸而改变圆角几何，要按尺寸逐个生成才正确，且会裁掉阴影与焦点环；属于不可维护的一类，已放弃。
 
 ## Components
 
 ### Buttons
-- **Shape:** 圆角 10px，`minHeight 40px`（`pointer: coarse` 下 44px），横向内边距 16px，无阴影（`disableElevation`），文案 15px/600。
+- **Shape:** 圆角 14px，`minHeight 40px`（`pointer: coarse` 下 44px），横向内边距 16px，无阴影（`disableElevation`），文案 15px/600。
 - **Primary:** 国道蓝底 + 白字（4.53:1）；悬停/按下走 `primary.dark`。
 - **Outlined / Ghost:** 透明底 + 国道蓝字，用于次级动作（「修改密码」「取消」）；危险动作用 `error` 色文字按钮（「删除」）。
 - **States:** 禁用时降低不透明度而非改成灰色；加载中文案替换为「保存中…」。
@@ -203,20 +234,39 @@ components:
 - **State:** 已选/未选通过底色与描边区分；删除图标把可点区域从约 20px 放大到约 38px（删一个节点不可逆，不能让它难按）。
 
 ### Cards / Containers
-- **Corner Style:** 14px。
+- **Corner Style:** 20px。
 - **Background:** 纸白 / 夜色纸；软色块只用于卡片内部的选中行。
 - **Border:** 1px `rule-slate`；不使用阴影。
 - **Internal Padding:** 14px（`CardContent` 上下一致）。
 
 ### Inputs / Fields
-- **Style:** outlined、48px 高、圆角 12px、1px 描边；标签常驻（不靠 placeholder 充当标签）。
+- **Style:** outlined、48px 高、圆角 16px、1px 描边；标签常驻（不靠 placeholder 充当标签）。
 - **Focus:** 描边转为国道蓝（MUI 默认 2px），不使用发光/阴影。
 - **Error:** 描边与 helperText 转 `error`，文案指出现状与后果（「必填」「还有 1 段里程没填」）。
 - **日期字段（只读显示）：** 日期只选不敲（`readOnly` + 整块可点打开选择器），字段宽度贴合日期（约 132px）、日期在框内**居中**、等宽数字；不使用右侧图标按钮——装饰性图标在这种「显示型」字段里是冗余，位置让给读数本身。
 
+### 路线节点编辑区（可改名 + 拖动排序）
+- **Shape:** 每个节点一行：`拖动手柄` + `站号` + `行内输入框` + `移除`；行底色软色块（`action.hover`）、圆角 14px、行内 8px 内边距，行间 8px。站号是等宽数字的次要读数（`text.secondary`），输入框占满剩余宽度（长中文节点名不截断）。
+- **Drag:** 拖动**只挂在手柄上**（dnd-kit 的 listeners 只给手柄那个 IconButton）——点进输入框改名永远不会误触发拖动；手柄用 `@mui/icons-material` 的拖动手柄图标，`cursor: grab/grabbing`，触屏 `touch-action: none`（否则一拖页面就跟着滚）。拖动中：原行降到 40% 透明、其余行自动让位（放置位置反馈），被拿起的那一行以**浮层**跟随手指（纸白底 + 主色描边 + `elevation 8`——只有真的浮在内容之上的层才用阴影）。
+- **Keyboard:** 手柄可 Tab 聚焦；空格/回车拿起 → 上下方向键移动 → 空格/回车放下，Esc 取消；朗读文案是中文（「已拿起节点「家」，当前第 1 站。」/「…放到了第 2 站，路线与分段已按新顺序重算。」），不使用 dnd-kit 的英文默认。
+- **Order is the route:** 顺序是路线的唯一依据；**改名、增删、拖动之后分段与总里程立刻按新顺序重算**。里程跟着「端点对」走（同一条路往返同值，不分方向）：仍然相邻的端点对保留原里程，新出现的相邻对留空再由历史默认值补齐——不会把某个数字留在它没填过的路段上。
+- **Empty:** 无节点时只写一句现状 + 示例（「还没有节点，例如：家 → 圣润 → 天九」）。
+
 ### Navigation
 - **Style:** 标题栏内联 `Tabs`，48px 高、15px/600 文案，选中项用国道蓝指示条；移动端不做底部导航，分组不离开标题栏。
 - **Account menu:** 标题栏右侧 ⋯ 菜单承载「账号 / 管理（仅管理员）/ 修改密码 / 导出数据（JSON）/ 退出登录」。
+
+### 查询条件（胶囊组 + 时间范围）
+- **Style:** 单选组用**胶囊**（`components/PillGroup.tsx`，MUI `Chip` clickable）：高 36px（coarse 44px）、999px 圆角、14px/600 文案，横向可换行——窄屏不出现横向滚动；选中＝国道蓝软底 + 主色描边 + 主色深色字，未选＝透明底 + `text.secondary` 描边与文字（描边 ≥3:1，是**控件边界**而不是装饰线）；选中用 `aria-pressed` 表达，容器 `role="group"` 且带组名。
+- **Groups:** 时间范围（本月 / 本年 / 去年 / 全部 / 自定义）· 统计维度（按月份 / 按路线 / 按分段 / 按节点）· 排序（按维度变化：按里程 / 按次数 / 按合计 / 按行程）· 里程（全部 / 只看未填里程）· 排序（最新在前 / 里程从高到低）。每行左侧用 14px `text.secondary` 小标签起头（维度 / 排序 / 里程），标签常驻，不靠 placeholder 承担。
+- **自定义范围:** 选中「自定义」后就地展开两个 `DateField`（起始 / 至 / 截止），不弹对话框。
+- **共用:** 汇总页与记录页共用同一个 `components/RangeControl.tsx`；加范围能力就改它，不要两页各写一份（口径必须同源）。
+
+### 查询结果（行列表 / 降序榜单）
+- **行列表（汇总页）:** 一行 = 标签 + 主读数（右对齐、等宽数字）+ 一行右对齐的次要读数（次数 / 单次 / 合计 / 最近日期）；月度维度在标签下多一条占比进度条。整行可点（`ListItemButton`，`aria-label` 写「…：查看明细」）→ 带着该行条件跳到记录页；标签可换行、读数不换行，长副标题不得挤压标签列（读数与副标题右缘对齐）。
+- **降序榜单（记录页「里程从高到低」）:** 这时**不再按月/日分组**——分组会把排序藏起来；改成一条榜单，每条自带日期头。
+- **空态:** 只写现状（「这一范围还没有记录」）；有记录但被条件筛空时给「清空条件」这一条出路。
+- **摘要行:** 结果上方一行写「范围 · 共 N 条 · 合计 X 公里」，有缺里程时补「· N 条未填里程」——汇总页读数带与它必须对得上（同一个 `lib/query.ts`）。
 
 ### 保存条（Signature Component）
 - **Shape:** 贴底整宽，上边界 1px 分居线 + elevation 8，内部 14px 内边距并让出 `env(safe-area-inset-bottom)`。
@@ -225,7 +275,7 @@ components:
 
 ### Toasts / Dialogs
 - **Toast:** 底部居中 Snackbar，位置抬到保存条之上；用四档语义色（成功/信息/警示/错误），错误停留 6s 且带可操作动作（「撤销」「重试」）。
-- **Dialog:** 圆角 16px，只用于需要确认或受保护输入的操作（删除、重置密码、恢复草稿），打开时焦点进入对话框、Esc 关闭。
+- **Dialog:** 圆角 22px，只用于需要确认或受保护输入的操作（删除、重置密码、恢复草稿），打开时焦点进入对话框、Esc 关闭。
 
 ## Do's and Don'ts
 

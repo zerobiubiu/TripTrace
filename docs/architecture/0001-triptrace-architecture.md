@@ -104,18 +104,23 @@ apps/web/src/
 ├── api.ts / types.ts         # API 封装（同源 /api）、类型入口（再导出契约包）
 ├── theme.ts / app.css        # MUI 主题与设计令牌（明暗自适应）；app.css 仅全局基线
 ├── lib/format.ts             # 日期与里程格式化
-├── lib/suggest.ts            # 建议引擎（纯函数）
+├── lib/suggest.ts            # 建议引擎（纯函数；也导出 nameKey/routeKey 给查询内核复用）
+├── lib/query.ts              # 查询内核：时间范围 / 筛选 / 多维聚合（汇总页与记录页共用一套口径）
 ├── lib/importText.ts         # 历史文本解析器
 ├── lib/entry.ts              # 表单纯函数逻辑（节点链、分段、总里程自动/手动）
 ├── lib/draft.ts              # 草稿持久化（localStorage，按用户隔离；登录与启动两条路径恢复）
 ├── lib/tripList.ts           # 本地列表更新
 ├── lib/version.ts            # 构建期注入的版本号
-├── components/               # TopBar（品牌 + 四个分组导航 + 账号菜单）/ Toasts / PasswordDialog（全部 MUI）
+├── components/               # TopBar（品牌 + 四个分组导航 + 账号菜单）/ Toasts / PasswordDialog / DateField / PillGroup / RangeControl / NodeEditor（全部 MUI）
 ├── views/                    # AuthScreen / EntryView / RecordsView / StatsView / ImportView / AccountView / AdminView（后三者为懒加载）
 └── app.css                   # 仅全局基线与安全区，其余全部走 MUI
 ```
 
-导航：四个分组（填报 / 记录 / 汇总 / 导入）内联在标题栏（移动端与桌面端同形态）；账号自助与管理员后台从标题栏的账号菜单进入。日期选择统一用 `@mui/x-date-pickers`（dayjs 适配器 + 中文文案）。
+**填报表单的节点模型**（0.9.0）：`EntryForm.nodes` 是 `{ id, name }` 数组，**认节点一律用 id**（增删、改名、拖动都以 id 定位）——拖动重排后下标会整体错位，拿下标当身份会删错人。`legs[i]` 恒为 `nodes[i] → nodes[i+1]` 的里程文本，**顺序是路线的唯一依据**：新增/删除/拖动都走同一条重建规则 `legsForNodes`（仍然相邻的端点对按先后取用原值、不分方向；新出现的相邻对留空再由历史默认值补齐），所以任何结构调整后分段与总里程都与当前顺序一致，且不会有数字留在它没填过的路段上。草稿落盘的仍是「名字数组」（磁盘格式不随内存里的 id 变化，旧草稿无需迁移）。拖动排序由 `components/NodeEditor.tsx` 承担（dnd-kit：`@dnd-kit/core` + `sortable` + `modifiers` + `utilities`，MIT）：**只有手柄是拖动激活器**，输入框内编辑不会误触发；键盘走 KeyboardSensor（空格拿起 → 方向键 → 空格放下），朗读文案为中文。
+
+导航：四个分组（填报 / 记录 / 汇总 / 导入）内联在标题栏（移动端与桌面端同形态）；账号自助与管理员后台从标题栏的账号菜单进入。日期选择统一用 `@mui/x-date-pickers`（dayjs 适配器 + 中文文案），共用只读日期字段 `components/DateField.tsx`（填报页与查询条件同一实现）。
+
+**两个查询面的分工**（0.8.0）：**汇总页 = 集中查询**（时间范围 + 四种聚合维度：月份 / 路线 / 分段 / 节点 + 排序 + 点某一行带着该行的条件跳到记录页）；**记录页 = 明细查询**（同一时间范围控件 + 关键词 + 只看未填里程 + 排序 + 结果摘要 + 条件胶囊）。两侧的筛选与聚合都只走 `lib/query.ts`——**同一范围下条数与合计里程必须一致**，跨页对不上会直接摧毁台账的可信度。分段的键是**无序对**（`家 ⇄ 圣润` 两个方向合成一条），与「同一条路往返里程相同」的产品口径一致。
 
 建议引擎（登录后一次性拉取行程数组，`buildIndex` 建索引）：节点名按次数 + 最近使用排序（前缀优先）；分段里程**默认值**取同方向最常用值，没有同方向时**按反方向推断**（同一条路往返里程相同，界面不区分方向），已有手填值不覆盖；节点链完全一致时整链一键沿用（`withChainApplied`，按历史补齐分段）。总里程恒为分段合计（`formTotalKm`），任一段为空即拒绝保存（`formKmIssues` 区分「空白」与「不合规」）。
 
@@ -125,7 +130,7 @@ apps/web/src/
 | --- | --- |
 | 默认（手机） | 单列；**标题栏内含品牌 + 四个分组**；填报页底部固定保存条（含安全区适配）；触摸目标 ≥ 44px |
 | ≥ 900px | 内容居中（maxWidth 1240）；卡片密度提高；保存按钮回到表单内 |
-| ≥ 1180px | 填报/导入双栏；汇总两列（年度汇总跨列） |
+| ≥ 1180px | 填报/导入双栏；汇总与记录保持单列（查询卡在上、结果在下——宽屏把结果列表拉宽比并排更好扫） |
 
 CSP 由 `apps/web/public/_headers` 下发（`default-src 'none'`；`script-src 'self'` 另放行 Cloudflare Insights 信标；`style-src 'self' 'unsafe-inline'` 是 MUI/emotion **运行时注入样式**的必要代价——静态托管无法按请求下发 nonce，应用也无用户可控 HTML；`connect-src 'self' https://cloudflareinsights.com`），因此前端不能使用内联脚本。注意 `_headers` **不支持注释行**，写注释会让整份规则解析失败（可在 `wrangler dev` 上验证头部实际生效）。Worker 对 `/api/*` 的响应再补一次同源安全头，其 `style-src` 保持严格（API 不承载文档）。
 
@@ -153,7 +158,10 @@ bun run db:migrate:local|remote
 
 ## 9. 已知限制与设计取舍
 
-- 前端产物：主包 635 kB（gzip ≈ 196 kB，含 React + MUI + `@mui/x-date-pickers`）；记录/汇总/导入视图按需懒加载分块。
+- 前端产物：**首屏闭包约 800 kB（含入口 chunk + 它静态引入的共享块）**，含 React + MUI + `@mui/x-date-pickers` + dnd-kit；记录/汇总/导入/账号/管理视图按需懒加载分块。注意只看「入口 chunk」会误判：Rollup 会把共享模块在入口与共享块之间重新归并，同一份代码换个位置就会让入口 chunk 忽大忽小（0.8.0 实测入口 583 kB、首屏闭包 748 kB；0.9.0 入口 636 kB、闭包 799 kB，其中约 52 kB 是 dnd-kit——它必须在首屏，因为节点编辑区就在填报页上）。比较体积时量**首屏闭包**。
+- 拖动排序用 dnd-kit（`@dnd-kit/core` 6.3.1 / `sortable` 10.0.0 / `modifiers` 9.0.0 / `utilities` 3.2.2，均 MIT）：表现层依赖，纯前端，不进接口与数据库。
+- **形状令牌**（0.9.1）：`theme.ts` 的 `radius` 是整站圆角的唯一来源（`icon 10 · inner 12 · control 14 · field 16 · content 20 · floating 22 · pill 999`；档位按**感知半径**定——超椭圆下同半径的角看着比圆弧小，所以比圆弧时代整体大一档）。视图里必须用**字符串令牌**——`sx` 的 `borderRadius: <number>` 会被乘上 `shape.borderRadius`（这一坑曾让四处行圆角变成 24px）。嵌套规则：贴边的内层必须 ≤ 外层（菜单/自动完成因此有 10px 内边距、项 12px 同心）；留有足够内边距时按各自层级取值即可。**浮层圆角逐组件声明**（`MuiDialog/Menu/Popover/Drawer/Autocomplete` 的 `paper`）：广谱覆盖 `MuiPaper.root` 会压过 `MuiCard`（卡片被顶成浮层圆角）并盖掉 `square`（保存条被改成圆角浮条），两次都在实测中被抓到。
+- **连续曲率**（0.9.1）：`border-radius` 是圆弧（G1），Apple 那种连续曲率是超椭圆（G2）。`MuiCssBaseline` 里一条 `@supports (corner-shape: squircle)` 把全站的角换成超椭圆（`squircle` ≡ `superellipse(2)`），芯片/进度条/头像等真圆元素例外标为 `round`。支持面（MDN BCD）：**Chrome / Edge 139+ 已支持，Safari 与 Firefox 仅预览版** —— 因此它是纯增强，不改变支持基线（Chrome ≥117 / Safari ≥17）；不支持的浏览器继续画圆弧，半径与层级关系完全一致。
 - 设计系统为 MUI v9 + emotion（0.3.0 起）：前端文档的 CSP 必须放行 `style-src 'unsafe-inline'`；`vite preview` 不解析 `_headers`，头部与 CSP 只能在 `wrangler dev` 或生产上验证。
 - 行程列表一次性拉全量（个人量级：数年数百条）；数据量到数千条以上需要加范围查询与分页。
 - 无密码找回：以管理员身份在 D1 侧重置（见 troubleshooting/0001）。

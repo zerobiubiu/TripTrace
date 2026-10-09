@@ -5,7 +5,7 @@
  * 只在表单非空时写入；登录成功后由 App 决定是恢复还是丢弃。
  */
 
-import type { EntryForm } from "./entry";
+import { newNodeId, type EntryForm } from "./entry";
 
 export interface StoredDraft {
   date: string;
@@ -51,7 +51,8 @@ export function saveDraft(userId: string, form: EntryForm): void {
   }
   const draft: StoredDraft = {
     date: form.date,
-    nodes: form.nodes,
+    // 落盘的仍是「名字数组」：磁盘格式不随内存里的 id 变化，旧草稿不用迁移
+    nodes: form.nodes.map((node) => node.name),
     legs: form.legs,
     note: form.note,
     savedAt: new Date().toISOString(),
@@ -74,7 +75,7 @@ export function clearDraft(userId: string): void {
 export function draftToForm(draft: StoredDraft): EntryForm {
   return {
     date: draft.date,
-    nodes: [...draft.nodes],
+    nodes: draft.nodes.map((name) => ({ id: newNodeId(), name })),
     legs: [...draft.legs],
     note: draft.note,
     editingId: null,

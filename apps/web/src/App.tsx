@@ -18,6 +18,7 @@ import { TAB_ITEMS, TopBar } from "./components/TopBar";
 import { clearDraft, draftSummary, draftToForm, loadDraft, saveDraft } from "./lib/draft";
 import { createEntryForm, formKmIssues, formToPayload, tripToForm, withChainApplied, type EntryForm } from "./lib/entry";
 import { chainText, formatDateLabel, formatKmText, todayIso } from "./lib/format";
+import { createFilter, resolveRange, type TripFilter } from "./lib/query";
 import { buildIndex, type RouteHit } from "./lib/suggest";
 import { removeTrip, upsertTrip } from "./lib/tripList";
 import { appVersion } from "./lib/version";
@@ -55,6 +56,10 @@ export function App() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tripsState, setTripsState] = useState<TripsState>("ready");
   const [tab, setTab] = useState<TabKey>("entry");
+  // 记录页的查询条件由 App 持有：汇总页点一行要能带着条件跳过去
+  const [recordsFilter, setRecordsFilter] = useState<TripFilter>(() =>
+    createFilter(resolveRange("year", { today: todayIso() })),
+  );
   const [form, setForm] = useState<EntryForm>(() => createEntryForm());
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [busy, setBusy] = useState(false);
@@ -376,6 +381,8 @@ export function App() {
                 ) : (
                   <RecordsView
                     trips={trips}
+                    filter={recordsFilter}
+                    onFilterChange={setRecordsFilter}
                     onEdit={(trip) => {
                       setForm(tripToForm(trip, index));
                       setTab("entry");
@@ -403,7 +410,13 @@ export function App() {
                     汇总暂时读不到，请检查网络后重试。
                   </Alert>
                 ) : (
-                  <StatsView trips={trips} />
+                  <StatsView
+                    trips={trips}
+                    onDrill={(filter) => {
+                      setRecordsFilter(filter);
+                      setTab("records");
+                    }}
+                  />
                 )}
               </Suspense>
             ) : null}

@@ -12,6 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 import { api } from "../api";
+import { radius } from "../theme";
 import type { User } from "../types";
 
 interface AuthScreenProps {
@@ -81,7 +82,7 @@ export function AuthScreen({ signupCodeRequired, version, onAuthenticated }: Aut
                 component="img"
                 src="/icon.svg"
                 alt=""
-                sx={{ width: 30, height: 30, display: "block", borderRadius: "8px" }}
+                sx={{ width: 30, height: 30, display: "block", borderRadius: radius.icon }}
               />
               <Typography variant="h2" component="span">
                 途迹 TripTrace

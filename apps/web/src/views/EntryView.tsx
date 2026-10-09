@@ -15,18 +15,21 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
+import { DateField } from "../components/DateField";
+import { NodeEditor } from "../components/NodeEditor";
+import { radius } from "../theme";
 import {
   createEntryForm,
   formKmIssues,
+  formNodeNameIssues,
   formTotalKm,
   withLegValue,
   withNodeAdded,
+  withNodeMoved,
+  withNodeRenamed,
   withNodeRemoved,
   type EntryForm,
 } from "../lib/entry";
@@ -51,12 +54,6 @@ interface EntryViewProps {
 
 const KM_HELP = "里程需在 0 - 100000 之间";
 
-/** 日期弹层内的文字下限：MUI X 默认 overline 13.7px、星期标签 12px，都低于 14px 地板。 */
-const PICKER_TEXT_SX = {
-  "& .MuiTypography-overline": { fontSize: "0.875rem" },
-  "& .MuiDayCalendar-weekDayLabel": { fontSize: "0.875rem" },
-} as const;
-
 export function EntryView({
   form,
   updateForm,
@@ -75,20 +72,21 @@ export function EntryView({
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [query, setQuery] = useState("");
   const [attempted, setAttempted] = useState(false);
-  const [dateOpen, setDateOpen] = useState(false);
 
   // 只排除「上一个节点」，允许回头节点（旗舰路线 家→圣润→天九→圣润→家 需要重复 圣润 与 家）
-  const lastNode = form.nodes.length > 0 ? form.nodes.slice(-1) : [];
+  const lastNodeName = form.nodes[form.nodes.length - 1]?.name ?? "";
+  const lastNode = lastNodeName ? [lastNodeName] : [];
   const suggestions = useMemo(
     () => suggestNodeNames(index, query, lastNode, 8),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [index, query, form.nodes.length, form.nodes[form.nodes.length - 1]],
+    [index, query, form.nodes.length, lastNodeName],
   );
   const nodeOptions = useMemo(() => suggestions.map((entry) => entry.name), [suggestions]);
   const quickRoutes = useMemo(() => recentRoutes(index, trips, 6), [index, trips]);
   const dayTrips = useMemo(() => trips.filter((trip) => trip.date === form.date), [trips, form.date]);
 
   const issues = formKmIssues(form);
+  const nameIssues = formNodeNameIssues(form);
   const totalKm = formTotalKm(form);
   const dayKm = Math.round(dayTrips.reduce((sum, trip) => sum + (trip.totalKm ?? 0), 0) * 100) / 100;
   const dayMissing = dayTrips.filter((trip) => trip.totalKm === null || trip.totalKm === undefined).length;
@@ -104,6 +102,10 @@ export function EntryView({
     setAttempted(true);
     if (form.nodes.length === 0) {
       onInvalid("请先添加至少一个节点");
+      return;
+    }
+    if (nameIssues.length > 0) {
+      onInvalid(`第 ${nameIssues.map((index) => index + 1).join("、")} 站还没填节点名`);
       return;
     }
     if (issues.invalidLegIndexes.length > 0) {
@@ -135,47 +137,10 @@ export function EntryView({
               >
                 <ChevronLeftRoundedIcon />
               </IconButton>
-              <DatePicker
+              <DateField
                 label="日期"
-                value={dayjs(form.date)}
-                format="YYYY/MM/DD"
-                open={dateOpen}
-                onOpen={() => setDateOpen(true)}
-                onClose={() => setDateOpen(false)}
-                onChange={(value) =>
-                  updateForm((current) => ({
-                    ...current,
-                    date: value && value.isValid() ? value.format("YYYY-MM-DD") : current.date,
-                  }))
-                }
-                slotProps={{
-                  textField: {
-                    sx: {
-                      // 只读的日期显示：宽度贴合日期本身（132px），值因此在框内居中（实测左右各 14px）
-                      // MUI X v9 的值渲染在 .MuiPickersSectionList-root 里（不是 <input>），
-                      // 所以字号/数字样式要挂在这个容器上；装饰区（日历图标）直接隐藏
-                      width: 132,
-                      "& .MuiInputAdornment-root": { display: "none" },
-                      "& .MuiPickersSectionList-root": { fontVariantNumeric: "tabular-nums" },
-                    },
-                    // 点整块就弹选择器；输入框只读（日期只选不敲），键盘 Enter/空格/↓ 同样打开
-                    onClick: () => setDateOpen(true),
-                    onKeyDown: (event) => {
-                      if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
-                        event.preventDefault();
-                        setDateOpen(true);
-                      }
-                    },
-                    slotProps: {
-                      htmlInput: { readOnly: true, "aria-haspopup": "dialog" },
-                    },
-                  },
-                  field: { clearable: false },
-                  // 弹层内 MUI X 的默认字号（overline 13.7px、星期标签 12px）抬到 14px 下限；
-                  // 窄屏走 dialog 变体、宽屏走 popper 变体，两处都要挂
-                  popper: { sx: PICKER_TEXT_SX },
-                  dialog: { sx: PICKER_TEXT_SX },
-                }}
+                value={form.date}
+                onChange={(iso) => updateForm((current) => ({ ...current, date: iso }))}
               />
               <IconButton
                 aria-label="后一天"
@@ -201,50 +166,24 @@ export function EntryView({
 
         <Card>
           <CardContent>
-            <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
-              路线节点（按顺序添加）
+            <Typography variant="h3" component="h3" sx={{ mb: 0.5 }}>
+              路线节点（顺序决定路线）
             </Typography>
-            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, alignItems: "center", mb: 1.5 }}>
-              {form.nodes.length === 0 ? (
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  还没有节点，例如：家 → 圣润 → 天九
-                </Typography>
-              ) : (
-                form.nodes.map((name, nodeIndex) => (
-                  <Stack key={`${name}-${nodeIndex}`} direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
-                    {nodeIndex > 0 ? <Typography sx={{ color: "text.secondary" }}>→</Typography> : null}
-                    <Chip
-                      label={name}
-                      color="primary"
-                      variant="outlined"
-                      onDelete={() => updateForm((current) => withNodeRemoved(current, nodeIndex, index))}
-                      deleteIcon={
-                        <CancelRoundedIcon
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`移除节点 ${name}`}
-                          sx={{
-                            // 键盘焦点要看得见（它是可 Tab 到的删除控件）
-                            "&:focus-visible": {
-                              outline: "2px solid",
-                              outlineColor: "primary.dark",
-                              outlineOffset: 2,
-                              borderRadius: "50%",
-                            },
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              updateForm((current) => withNodeRemoved(current, nodeIndex, index));
-                            }
-                          }}
-                        />
-                      }
-                    />
-                  </Stack>
-                ))
-              )}
-            </Stack>
+            <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
+              {form.nodes.length === 0
+                ? "还没有节点，例如：家 → 圣润 → 天九"
+                : "拖左侧手柄调整顺序；改动顺序会立刻重算分段与总里程。"}
+            </Typography>
+
+            {form.nodes.length > 0 ? (
+              <NodeEditor
+                nodes={form.nodes}
+                showEmptyError={attempted}
+                onRename={(nodeId, name) => updateForm((current) => withNodeRenamed(current, nodeId, name))}
+                onRemove={(nodeId) => updateForm((current) => withNodeRemoved(current, nodeId, index))}
+                onMove={(nodeId, toIndex) => updateForm((current) => withNodeMoved(current, nodeId, toIndex, index))}
+              />
+            ) : null}
 
             <Autocomplete
               freeSolo
@@ -268,7 +207,7 @@ export function EntryView({
               renderInput={(params) => (
                 <TextField {...params} label="节点名称" placeholder="回车添加" />
               )}
-              sx={{ mb: 1.5 }}
+              sx={{ mt: form.nodes.length > 0 ? 2 : 0, mb: 1.5 }}
             />
 
             <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
@@ -278,7 +217,12 @@ export function EntryView({
               <Button
                 startIcon={<UndoRoundedIcon />}
                 disabled={form.nodes.length === 0}
-                onClick={() => updateForm((current) => withNodeRemoved(current, current.nodes.length - 1, index))}
+                onClick={() =>
+                  updateForm((current) => {
+                    const last = current.nodes[current.nodes.length - 1];
+                    return last ? withNodeRemoved(current, last.id, index) : current;
+                  })
+                }
               >
                 撤销上一个
               </Button>
@@ -297,8 +241,8 @@ export function EntryView({
               </Typography>
               <Stack spacing={1}>
                 {form.legs.map((value, legIndex) => {
-                  const from = form.nodes[legIndex] ?? "";
-                  const to = form.nodes[legIndex + 1] ?? "";
+                  const from = form.nodes[legIndex]?.name ?? "";
+                  const to = form.nodes[legIndex + 1]?.name ?? "";
                   const invalid = issues.invalidLegIndexes.includes(legIndex);
                   const missing = attempted && issues.missingLegIndexes.includes(legIndex);
                   return (
@@ -311,7 +255,7 @@ export function EntryView({
                         flexWrap: "wrap",
                         rowGap: 1,
                         p: 1,
-                        borderRadius: 2,
+                        borderRadius: radius.control,
                         bgcolor: "action.hover",
                       }}
                     >
@@ -427,7 +371,7 @@ export function EntryView({
                   <Stack
                     key={trip.id}
                     spacing={0.5}
-                    sx={{ p: 1.25, border: 1, borderColor: "divider", borderRadius: 2 }}
+                    sx={{ p: 1.25, border: 1, borderColor: "divider", borderRadius: radius.control }}
                   >
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {chainText(trip.nodes)}

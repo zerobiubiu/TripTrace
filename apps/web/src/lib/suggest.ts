@@ -8,11 +8,13 @@ import { normalizeName } from "./format";
 
 const KEY_SEPARATOR = "\u0000";
 
-function nameKey(name: string): string {
+/** 节点名的比较键：归一化 + 小写。`lib/query.ts` 复用（聚合与补全必须用同一套键）。 */
+export function nameKey(name: string): string {
   return normalizeName(name).toLowerCase();
 }
 
-function routeKey(nodes: string[]): string {
+/** 路线（整条节点链）的比较键。`lib/query.ts` 复用。 */
+export function routeKey(nodes: string[]): string {
   return nodes.map(nameKey).join(KEY_SEPARATOR);
 }
 

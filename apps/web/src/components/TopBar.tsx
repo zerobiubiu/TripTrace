@@ -13,6 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
+import { radius } from "../theme";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
@@ -69,7 +70,7 @@ export function TopBar({
       sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}
     >
       <Toolbar sx={{ gap: { xs: 0.5, sm: 1 }, px: { xs: 1, sm: 2 }, minHeight: { xs: 52, sm: 56 } }}>
-        <Box component="img" src="/icon.svg" alt="" sx={{ width: 26, height: 26, borderRadius: "8px" }} />
+        <Box component="img" src="/icon.svg" alt="" sx={{ width: 26, height: 26, borderRadius: radius.icon }} />
         <Typography variant="h1" component="h1" sx={{ fontSize: "1.125rem", mr: { xs: 0.5, sm: 1 } }}>
           途迹
         </Typography>
