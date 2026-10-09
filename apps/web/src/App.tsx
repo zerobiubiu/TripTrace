@@ -43,7 +43,10 @@ const tabTitle = (tab: TabKey): string =>
 
 function ViewSkeleton() {
   return (
-    <Stack spacing={1.5}>
+    // 预留空间：内容比骨架高得多，而页脚在加载相里是**屏内可见**的——不留高度，加载完成那一下
+    // 页脚会从屏内跳到屏外，被记成一次布局位移。实测（生产构建、1200 条行程、同机同流程 A/B）：
+    // 不预留时 session-window CLS 0.2873（页脚 top 445，屏内）；预留 100vh 后 0.0001（页脚 913，折叠线以下）。
+    <Stack spacing={1.5} sx={{ minHeight: "100vh" }}>
       <Skeleton variant="rounded" height={96} />
       <Skeleton variant="rounded" height={160} />
       <Skeleton variant="rounded" height={96} />

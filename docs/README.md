@@ -26,6 +26,7 @@
 | `changes/` | [0017-responsive-forms.md](changes/0017-responsive-forms.md) | 变更记录 | 已执行 | 多形态适配（0.11.0，`/impeccable adapt`）：手机/平板/桌面三分（桌面 ≥1024 两栏 + 记录与汇总的吸顶查询栏）、断点词汇收敛到 1024、窄屏导航与底部留白修正、横屏紧凑保存条 |
 | `changes/` | [0018-polish-pass.md](changes/0018-polish-pass.md) | 变更记录 | 已执行 | 部署 0.11.0（含首页边缘缓存 purge）后跑 `init` 刷新产品台账 + `polish` 终检：状态徽标只对可交互胶囊放大、底部固定条高度收敛到 `--tt-savebar-h`；含一处假发现的更正 |
 | `changes/` | [0019-hardening-pass.md](changes/0019-hardening-pass.md) | 变更记录 | 已执行 | 抗脆弱加固（0.11.2，`/impeccable harden`）：接口边界清洗（畸形载荷不再白屏）、视图错误边界（单页崩溃不带走整站）、里程千位分隔、key 与 Tabs 警告 |
+| `changes/` | [0020-performance-pass.md](changes/0020-performance-pass.md) | 变更记录 | 已执行 | 性能评估与修复（0.11.3，`/impeccable optimize`）：懒加载骨架预留一屏空间，session-window CLS 0.287 → 0.0001；含生产 vs dev 基线差异与「有意不做」的量化依据 |
 | 同目录 | [../apps/web/DESIGN.md](../apps/web/DESIGN.md) | 设计系统 | 已执行 | 视觉系统的规范来源（令牌 frontmatter + 八节）；侧车在 `apps/web/.impeccable/design.json` |
 | `troubleshooting/` | [0001-auth-and-session-ops.md](troubleshooting/0001-auth-and-session-ops.md) | 排查手册 | 参考 | PBKDF2 迭代上限与 CPU 额度取舍；手动删用户后的会话缓存清理步骤 |
 | `troubleshooting/` | [0002-workspace-tooling-gotchas.md](troubleshooting/0002-workspace-tooling-gotchas.md) | 排查手册 | 参考 | workspaces 拆分后的工具链坑：shim 残留、全局 vite 抢占、Pages 项目创建与自定义域 DNS、TS7 baseUrl |
