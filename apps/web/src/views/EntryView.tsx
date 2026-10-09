@@ -151,10 +151,12 @@ export function EntryView({
                 slotProps={{
                   textField: {
                     sx: {
-                      width: 168,
-                      // 整块可点之后右侧的日历图标是多余装饰（MUI X 会把自己的图标合并进 endAdornment，
-                      // 传 null 无效）：直接隐藏这个装饰区，只留完整的日期输入框
+                      // 只读的日期显示：宽度贴合日期本身（132px），值因此在框内居中（实测左右各 14px）
+                      // MUI X v9 的值渲染在 .MuiPickersSectionList-root 里（不是 <input>），
+                      // 所以字号/数字样式要挂在这个容器上；装饰区（日历图标）直接隐藏
+                      width: 132,
                       "& .MuiInputAdornment-root": { display: "none" },
+                      "& .MuiPickersSectionList-root": { fontVariantNumeric: "tabular-nums" },
                     },
                     // 点整块就弹选择器；输入框只读（日期只选不敲），键盘 Enter/空格/↓ 同样打开
                     onClick: () => setDateOpen(true),

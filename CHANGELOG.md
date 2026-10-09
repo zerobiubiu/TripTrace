@@ -3,6 +3,15 @@
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。项目版本以根 `package.json` 为唯一事实来源，
 `apps/api/wrangler.jsonc` 的 `vars.APP_VERSION` 由 `bun run check` 门禁校验一致性；前端版本由 Vite 注入。
 
+## 0.6.2
+
+日期字段的排班补完：0.6.1 只隐藏了图标，字段仍是 168px、右侧留出原图标的空间，值明显偏左。
+
+- 根因：MUI X v9 的日期字段不是 `<input>` 渲染——值在 `.MuiPickersSectionList-root`（sections 容器）里，`<input>` 只是 1×1 的隐藏表单位，所以 0.6.1 写的 `& .MuiOutlinedInput-input { textAlign: center }` 从未命中。
+- 修复：字段宽度贴合日期（168 → 132px），值因此自然居中（实测左右各 14px）；等宽数字挂到正确容器（`.MuiPickersSectionList-root`），删掉两条无效选择器。
+- 实测：132 / 104 / 14 / 14（字段宽 / 内容宽 / 左留白 / 右留白），tabular-nums 生效，字号 16px，装饰区 `display:none`，0 控制台错误。
+- `DESIGN.md` 增补「日期字段（只读显示）」规则：宽度贴合、值居中、等宽数字、不用右侧图标。
+
 ## 0.6.1
 
 日期框去掉右侧日历图标：整块可点之后它是多余装饰，现在只留一个完整的日期输入框。

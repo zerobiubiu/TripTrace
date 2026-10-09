@@ -97,3 +97,12 @@ Windows 10 / bun 1.4.2 / wrangler 4.148.0；本地单 Worker `wrangler dev --por
 - `slotProps.textField.sx` 内加 `"& .MuiInputAdornment-root": { display: "none" }`——最初试的 `slotProps.textField.slotProps.input.endAdornment = null` 无效，因为 MUI X 会把自带的图标合并进 `endAdornment`，覆盖不住；改为隐藏整个装饰区（该方案不受内部合并顺序影响）。
 - 实测：字段内可见按钮 0 个、装饰区 `display: none`、字段宽 168px 完整显示 `2026/10/09`；点字段**右半侧**同样打开选择器（左半侧此前已验证）；键盘 ↓ 仍可打开；0 控制台错误。
 - 只影响填报页日期控件，无其它行为变化。
+
+## 追加（0.6.2）
+
+用户反馈 0.6.1 的效果：「去掉了图标，但输入框没有居中，UI 设计没做好，只是单纯隐藏了」。核实成立：隐藏图标后字段仍是 168px，右侧留出的是原图标的空间，值因此明显偏左。
+
+- **根因**：MUI X v9 的日期字段不是 `<input>` 渲染——值在 `.MuiPickersSectionList-root`（sections 容器）里，`<input>` 只是 1×1 的隐藏表单位。所以 0.6.1 里写的 `& .MuiOutlinedInput-input { textAlign: center }` **从未命中**，等于只做了隐藏。
+- **修复**：字段宽度改为贴合日期（168 → 132px），值于是自然居中（实测左右各 14px）；数字样式挂到正确容器上（`.MuiPickersSectionList-root { font-variant-numeric: tabular-nums }`），去掉两条无效选择器。
+- **实测**：fieldWidth 132 / contentWidth 104 / gapLeft 14 / gapRight 14 / tabular-nums 生效 / 字号 16px / 装饰区 `display:none` / 0 控制台错误；截图核对「日期 + 2026/10/09」在框内居中、两侧箭头对称。
+- `DESIGN.md` 的 Inputs 段补了「日期字段是只读显示」的规则（宽度贴合、值居中、等宽数字、不用右侧图标）。
