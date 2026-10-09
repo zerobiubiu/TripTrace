@@ -3,6 +3,16 @@
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。项目版本以根 `package.json` 为唯一事实来源，
 `apps/api/wrangler.jsonc` 的 `vars.APP_VERSION` 由 `bun run check` 门禁校验一致性；前端版本由 Vite 注入。
 
+## 0.5.1
+
+设计系统文档化（`apps/web/DESIGN.md` + `.impeccable/design.json`）与 impeccable polish 收口：修掉与自定设计系统不一致的 MUI 默认样式。
+
+- **14px 地板落到主题**：`MuiInputLabel` 静止 16px / 收缩 14px（原 12px）、`MuiFormHelperText` 14px（原 13px）、`MuiChip.label` 14px（原 13px，`size="small"` 为 12px）、`caption` 14px（原 13px）；日期弹层内 MUI X 的 overline（13.7px）与星期标签（12px）抬到 14px（`popper` 与 `dialog` 两个插槽都挂）。
+- **键盘焦点可见**：`MuiButtonBase` 统一 `focusVisible` 2px 主色描边；节点芯片的删除控件补同款焦点环。
+- **清理重复与死代码**：删除三个视图里各自维护的 `CHIP_FONT_SX`（值已进主题），删除 0.5.0 移除底部导航后遗留的 `MuiBottomNavigation*` 主题覆盖。
+- **管理页表格**：表头不折行，行程数/合计里程右对齐并使用等宽数字。
+- 新增设计系统文档：北星「路口台账 The Route Ledger」、主色命名「国道蓝」、深度立场「扁平为主，阴影只给浮层」、明确反例「营销页那套不要」。
+
 ## 0.5.0
 
 填报规则收紧与界面清理：**每一段里程都必须填**（默认带出历史值，可改），总里程由分段合计得出；日期控件换成 `@mui/x-date-pickers`；四个分组收进标题栏；删除说明性废话文案。API 契约与数据模型不变。

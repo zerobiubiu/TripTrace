@@ -38,11 +38,12 @@ interface AdminViewProps {
   currentUserId: string;
 }
 
-/** Chip 自带字号是 13px，低于 14px 的下限，这里统一抬到 body2。 */
-const CHIP_FONT_SX = { fontSize: "0.875rem" };
-
 /** 主题桌面端按钮只有 40px 高，这里保证可点区域 ≥44px。 */
 const TOUCH_SX = { minHeight: 44 };
+/** 表头不折行（「行程数」「合计里程」在窄屏会被拆成两行）。 */
+const HEAD_SX = { fontWeight: 600, whiteSpace: "nowrap" } as const;
+/** 数字列右对齐 + 等宽数字，与全站读数规则一致。 */
+const NUM_SX = { fontVariantNumeric: "tabular-nums" } as const;
 
 /** 与服务端 validatePassword 同一口径：8–200 位；返回空串表示通过。 */
 function passwordIssue(value: string): string {
@@ -193,25 +194,25 @@ export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminView
         <Table size="small" sx={{ minWidth: 780 }} aria-label="用户列表">
           <TableHead>
             <TableRow>
-              <TableCell variant="head" sx={{ fontWeight: 600 }}>
+              <TableCell variant="head" sx={HEAD_SX}>
                 用户名
               </TableCell>
-              <TableCell variant="head" sx={{ fontWeight: 600 }}>
+              <TableCell variant="head" sx={HEAD_SX}>
                 显示名
               </TableCell>
-              <TableCell variant="head" sx={{ fontWeight: 600 }}>
+              <TableCell variant="head" align="right" sx={HEAD_SX}>
                 行程数
               </TableCell>
-              <TableCell variant="head" sx={{ fontWeight: 600 }}>
+              <TableCell variant="head" align="right" sx={HEAD_SX}>
                 合计里程
               </TableCell>
-              <TableCell variant="head" sx={{ fontWeight: 600 }}>
+              <TableCell variant="head" sx={HEAD_SX}>
                 最近活跃
               </TableCell>
-              <TableCell variant="head" sx={{ fontWeight: 600 }}>
+              <TableCell variant="head" sx={HEAD_SX}>
                 状态
               </TableCell>
-              <TableCell variant="head" sx={{ fontWeight: 600 }}>
+              <TableCell variant="head" sx={HEAD_SX}>
                 操作
               </TableCell>
             </TableRow>
@@ -233,15 +234,18 @@ export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminView
                     ) : null}
                   </TableCell>
                   <TableCell>{row.displayName}</TableCell>
-                  <TableCell>{row.tripCount}</TableCell>
-                  <TableCell>{formatKm(row.totalKm)} 公里</TableCell>
+                  <TableCell align="right" sx={NUM_SX}>
+                    {row.tripCount}
+                  </TableCell>
+                  <TableCell align="right" sx={NUM_SX}>
+                    {formatKm(row.totalKm)} 公里
+                  </TableCell>
                   <TableCell>{formatDateTimeLabel(row.lastSeenAt)}</TableCell>
                   <TableCell>
                     <Chip
                       size="small"
                       color={disabled ? "warning" : "success"}
                       label={disabled ? "已禁用" : "正常"}
-                      sx={CHIP_FONT_SX}
                     />
                   </TableCell>
                   <TableCell>

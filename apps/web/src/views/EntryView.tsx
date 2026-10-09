@@ -51,6 +51,12 @@ interface EntryViewProps {
 
 const KM_HELP = "里程需在 0 - 100000 之间";
 
+/** 日期弹层内的文字下限：MUI X 默认 overline 13.7px、星期标签 12px，都低于 14px 地板。 */
+const PICKER_TEXT_SX = {
+  "& .MuiTypography-overline": { fontSize: "0.875rem" },
+  "& .MuiDayCalendar-weekDayLabel": { fontSize: "0.875rem" },
+} as const;
+
 export function EntryView({
   form,
   updateForm,
@@ -141,6 +147,10 @@ export function EntryView({
                 slotProps={{
                   textField: { sx: { width: 168 } },
                   field: { clearable: false },
+                  // 弹层内 MUI X 的默认字号（overline 13.7px、星期标签 12px）抬到 14px 下限；
+                  // 窄屏走 dialog 变体、宽屏走 popper 变体，两处都要挂
+                  popper: { sx: PICKER_TEXT_SX },
+                  dialog: { sx: PICKER_TEXT_SX },
                 }}
               />
               <IconButton
@@ -189,6 +199,15 @@ export function EntryView({
                           role="button"
                           tabIndex={0}
                           aria-label={`移除节点 ${name}`}
+                          sx={{
+                            // 键盘焦点要看得见（它是可 Tab 到的删除控件）
+                            "&:focus-visible": {
+                              outline: "2px solid",
+                              outlineColor: "primary.dark",
+                              outlineOffset: 2,
+                              borderRadius: "50%",
+                            },
+                          }}
                           onKeyDown={(event) => {
                             if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();

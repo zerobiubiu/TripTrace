@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-09T02:40:00.000Z",
+  "title": "Design System: 途迹 TripTrace",
+  "extensions": {
+    "colorMeta": {
+      "highway-blue": {
+        "role": "primary",
+        "displayName": "国道蓝 Highway Blue",
+        "canonical": "#2F6DF6",
+        "tonalRamp": ["#00003C", "#00166A", "#08359C", "#1C54D1", "#3D79F9", "#69A1FF", "#96C8FF", "#C5EFFF"]
+      },
+      "highway-blue-deep": {
+        "role": "primary",
+        "displayName": "国道蓝·深 Highway Blue Deep",
+        "canonical": "#1E4FCB",
+        "tonalRamp": ["#000038", "#021965", "#123796", "#2756C9", "#467AF0", "#70A1FF", "#9CC8FF", "#C9EEFF"]
+      },
+      "highway-blue-night": {
+        "role": "primary",
+        "displayName": "国道蓝·夜 Highway Blue Night",
+        "canonical": "#8AB4FF",
+        "tonalRamp": ["#000826", "#0D234B", "#244074", "#3D609F", "#5D82C4", "#84A5E1", "#ADCAFE", "#D7F0FF"]
+      },
+      "page-slate": {
+        "role": "neutral",
+        "displayName": "页灰 Page Slate",
+        "canonical": "#F4F6FB",
+        "tonalRamp": ["#0A0B0D", "#242527", "#414245", "#606165", "#818286", "#A3A5A9", "#C8C9CC", "#EDEEF1"]
+      },
+      "night-page": {
+        "role": "neutral",
+        "displayName": "夜色页 Night Page",
+        "canonical": "#0F1218",
+        "tonalRamp": ["#0A0B0E", "#23252A", "#3F4248", "#5E6169", "#7F828A", "#A2A5AC", "#C6C9CF", "#ECEEF3"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "墨 Ink",
+        "canonical": "#1B2231",
+        "tonalRamp": ["#080B12", "#20252F", "#3C424F", "#596172", "#7A8294", "#9EA5B5", "#C3C9D7", "#E9EFFA"]
+      },
+      "alert-red": {
+        "role": "tertiary",
+        "displayName": "警告红 Alert Red",
+        "canonical": "#B3261E",
+        "tonalRamp": ["#280000", "#510000", "#7D0F0B", "#AC2B22", "#D45144", "#F27F70", "#FFAA9C", "#FFD6C9"]
+      },
+      "caution-amber": {
+        "role": "tertiary",
+        "displayName": "提醒琥珀 Caution Amber",
+        "canonical": "#8A5606",
+        "tonalRamp": ["#1A0500", "#3B1C00", "#5F3800", "#855512", "#A9763A", "#C99B69", "#E9C196", "#FFE8C5"]
+      },
+      "confirm-green": {
+        "role": "tertiary",
+        "displayName": "确认绿 Confirm Green",
+        "canonical": "#0F7A57",
+        "tonalRamp": ["#001205", "#002F1B", "#005036", "#137252", "#409572", "#70B697", "#9ED8BD", "#CCFCE4"]
+      },
+      "notice-blue": {
+        "role": "secondary",
+        "displayName": "信息蓝 Notice Blue",
+        "canonical": "#0B6BCB",
+        "tonalRamp": ["#000530", "#00215A", "#003F88", "#055FB8", "#3583DE", "#67A8F8", "#95CDFF", "#C4F2FF"]
+      }
+    },
+    "typographyMeta": {
+      "title": { "displayName": "Title", "purpose": "页面级标题与全站唯一 h1（品牌「途迹」）。" },
+      "headline": { "displayName": "Headline", "purpose": "卡片主标题。" },
+      "section": { "displayName": "Section", "purpose": "卡片内小节标题。" },
+      "body": { "displayName": "Body", "purpose": "节点名、备注、表单内容。" },
+      "label": { "displayName": "Label", "purpose": "说明、单位、日期、按钮大号文案。" },
+      "caption": { "displayName": "Caption", "purpose": "页脚版本号这类极次要信息。" },
+      "button": { "displayName": "Button", "purpose": "按钮与标签页文案。" }
+    },
+    "shadows": [
+      {
+        "name": "floating-surface",
+        "value": "0px 5px 5px -3px rgba(0, 0, 0, 0.2), 0px 8px 10px 1px rgba(0, 0, 0, 0.14), 0px 3px 14px 2px rgba(0, 0, 0, 0.12)",
+        "purpose": "MUI elevation 8：只用于底部固定保存条这类真正浮在内容之上的层。"
+      }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "MUI 默认状态过渡曲线（颜色/透明度）。" },
+      { "name": "duration-short", "value": "150ms", "purpose": "悬停、聚焦、选中的过渡时长。" },
+      { "name": "reduced-motion", "value": "@media (prefers-reduced-motion: reduce) → animation/transition 0.01ms，仅保留颜色与透明度反馈", "purpose": "关闭位移与循环动画，不牺牲状态可见性。" }
+    ],
+    "breakpoints": [
+      { "name": "container", "value": "1240px" },
+      { "name": "md", "value": "900px" },
+      { "name": "lg", "value": "1180px" },
+      { "name": "coarse-pointer", "value": "@media (pointer: coarse)" }
+    ]
+  },
+  "components": [
+    {
+      "name": "主按钮 Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "唯一的主操作样式：保存、登录、添加节点。",
+      "html": "<button class=\"ds-btn-primary\">保存</button>",
+      "css": ".ds-btn-primary { background: #2F6DF6; color: #FFFFFF; border: none; border-radius: 10px; min-height: 40px; padding: 0 16px; font-size: 0.9375rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: #1E4FCB; } .ds-btn-primary:focus-visible { outline: 2px solid #1E4FCB; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; } @media (pointer: coarse) { .ds-btn-primary { min-height: 44px; } }"
+    },
+    {
+      "name": "次级按钮 Outlined Button",
+      "kind": "button",
+      "refersTo": "button-outlined",
+      "description": "次级或取消类动作，如「修改密码」「取消编辑」。",
+      "html": "<button class=\"ds-btn-outlined\">修改密码</button>",
+      "css": ".ds-btn-outlined { background: transparent; color: #2F6DF6; border: 1px solid #2F6DF6; border-radius: 10px; min-height: 40px; padding: 0 16px; font-size: 0.9375rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-outlined:hover { background: #E8EFFF; } .ds-btn-outlined:focus-visible { outline: 2px solid #1E4FCB; outline-offset: 2px; } @media (pointer: coarse) { .ds-btn-outlined { min-height: 44px; } }"
+    },
+    {
+      "name": "节点芯片 Node Chip",
+      "kind": "chip",
+      "refersTo": "chip-node",
+      "description": "节点链上的一个节点；右侧删除键放大到约 38px（删节点不可逆）。",
+      "html": "<span class=\"ds-chip-node\">圣润<svg class=\"ds-chip-node__x\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm3.5 12.1-1.4 1.4L12 13.4l-2.1 2.1-1.4-1.4L10.6 12 8.5 9.9l1.4-1.4L12 10.6l2.1-2.1 1.4 1.4L13.4 12l2.1 2.1Z\"/></svg></span>",
+      "css": ".ds-chip-node { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 8px 0 12px; border: 1px solid #2F6DF6; border-radius: 999px; color: #2F6DF6; background: transparent; font-size: 0.875rem; font-weight: 600; font-family: inherit; } .ds-chip-node__x { width: 22px; height: 22px; padding: 8px; box-sizing: content-box; border-radius: 50%; cursor: pointer; } .ds-chip-node__x:hover { background: #E8EFFF; } .ds-chip-node__x:focus-visible { outline: 2px solid #1E4FCB; outline-offset: 2px; } @media (pointer: coarse) { .ds-chip-node { height: 44px; } }"
+    },
+    {
+      "name": "描边卡片 Outlined Card",
+      "kind": "card",
+      "refersTo": "card-outlined",
+      "description": "唯一的内容容器：1px 描边分层，无阴影。",
+      "html": "<section class=\"ds-card\"><h3 class=\"ds-card__title\">总里程</h3><p class=\"ds-card__body\">25 公里</p></section>",
+      "css": ".ds-card { background: #FFFFFF; border: 1px solid #D7DEEA; border-radius: 14px; padding: 14px; font-family: inherit; } .ds-card__title { margin: 0 0 12px; font-size: 1rem; font-weight: 650; line-height: 1.4; color: #1B2231; } .ds-card__body { margin: 0; font-size: 1rem; line-height: 1.6; color: #1B2231; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "输入框 Outlined Input",
+      "kind": "input",
+      "refersTo": "input-outlined",
+      "description": "标签常驻、48px 高；描边对比度 ≥3:1。",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field__label\">分段里程</span><input class=\"ds-field__input\" inputmode=\"decimal\" value=\"25\" /></label>",
+      "css": ".ds-field { display: block; font-family: inherit; } .ds-field__label { display: block; margin-bottom: 4px; font-size: 0.875rem; color: #5C6579; } .ds-field__input { height: 48px; width: 100%; box-sizing: border-box; padding: 0 14px; border: 1px solid #6B7788; border-radius: 12px; background: transparent; color: #1B2231; font-size: 1rem; font-family: inherit; font-variant-numeric: tabular-nums; transition: border-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-field__input:hover { border-color: #1B2231; } .ds-field__input:focus-visible { outline: none; border-color: #2F6DF6; border-width: 2px; } .ds-field__input[aria-invalid=\"true\"] { border-color: #B3261E; }"
+    },
+    {
+      "name": "顶栏标签页 Header Tab",
+      "kind": "nav",
+      "refersTo": "nav-tab",
+      "description": "四个分组内联在标题栏；移动端与桌面端同形态。",
+      "html": "<nav class=\"ds-tabs\" role=\"tablist\"><button class=\"ds-tab ds-tab--active\" role=\"tab\" aria-selected=\"true\">填报</button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\">记录</button></nav>",
+      "css": ".ds-tabs { display: flex; gap: 0; border-bottom: 1px solid #D7DEEA; font-family: inherit; } .ds-tab { min-height: 48px; min-width: 64px; padding: 0 12px; background: none; border: none; border-bottom: 2px solid transparent; color: #5C6579; font-size: 0.9375rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-tab:hover { color: #1B2231; } .ds-tab--active { color: #2F6DF6; border-bottom-color: #2F6DF6; } .ds-tab:focus-visible { outline: 2px solid #1E4FCB; outline-offset: -2px; }"
+    },
+    {
+      "name": "底部保存条 Save Bar（签名组件）",
+      "kind": "custom",
+      "refersTo": "save-bar",
+      "description": "移动端常驻拇指区：左侧只读合计，右侧主按钮；未凑齐时显示缺口数量。",
+      "html": "<div class=\"ds-savebar\"><div class=\"ds-savebar__sum\"><span class=\"ds-savebar__label\">总里程</span><strong class=\"ds-savebar__value\">25 公里</strong></div><button class=\"ds-savebar__cta\">保存</button></div>",
+      "css": ".ds-savebar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 8px; align-items: center; padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px)); background: #FFFFFF; border-top: 1px solid #D7DEEA; box-shadow: 0 -5px 5px -3px rgba(0, 0, 0, 0.2), 0 -8px 10px 1px rgba(0, 0, 0, 0.14); font-family: inherit; } .ds-savebar__sum { flex: 1; min-width: 0; } .ds-savebar__label { display: block; font-size: 0.75rem; color: #5C6579; } .ds-savebar__value { display: block; font-size: 1.125rem; font-weight: 650; color: #1B2231; font-variant-numeric: tabular-nums; line-height: 1.2; } .ds-savebar__cta { background: #2F6DF6; color: #FFFFFF; border: none; border-radius: 10px; min-height: 48px; padding: 0 24px; font-size: 0.9375rem; font-weight: 600; font-family: inherit; cursor: pointer; } .ds-savebar__cta:hover { background: #1E4FCB; } .ds-savebar__cta:focus-visible { outline: 2px solid #1E4FCB; outline-offset: 2px; }"
+    },
+    {
+      "name": "轻提示 Toast",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "底部居中、抬到保存条之上；四档语义色，错误带可操作动作。",
+      "html": "<div class=\"ds-toast ds-toast--success\" role=\"status\"><span>已保存：10月9日 · 25 公里</span><button class=\"ds-toast__action\">撤销</button></div>",
+      "css": ".ds-toast { display: inline-flex; align-items: center; gap: 12px; border-radius: 12px; padding: 8px 16px; background: #0F7A57; color: #FFFFFF; font-size: 0.875rem; font-family: inherit; } .ds-toast--error { background: #B3261E; } .ds-toast__action { background: none; border: none; color: inherit; font-size: 0.875rem; font-weight: 600; font-family: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "路口台账（The Route Ledger）",
+    "overview": "这是把「跑客户的路书」和「记账本」叠在一起的东西：一条节点链就是一趟路，一串数字就是这趟路的账。设计不为表达服务，为在厂区、车间、客户楼下用一只手把这一笔记完服务——字要大、对比要高、主操作要落在拇指够得到的地方。\n\n视觉语言是克制的：页面底色是冷灰（浅色 #F4F6FB / 深色 #0F1218），内容放纸白卡片上，卡片用 1px 描边而不是阴影分层，唯一的彩色是「国道蓝」。颜色不是装饰，是状态：蓝＝可操作与选中，绿＝已保存，琥珀＝缺东西，红＝危险或出错。\n\n语气务实清晰、微微冷：界面文案动词开头、直白说明（「添加节点」「保存」「补齐分段后自动合计」），不解释实现、不劝进、不寒暄。",
+    "keyCharacteristics": [
+      "单手可完成全流程：加节点 → 分段（默认带出历史值）→ 保存，保存条常驻拇指区。",
+      "一屏一个主任务：卡片按「日期 → 节点 → 分段 → 总里程 → 备注」的录入顺序纵向排列。",
+      "浅色/深色两套令牌同源，全部走主题；组件里不出现裸色值。",
+      "数字是读数：里程一律等宽数字（tabular-nums）右对齐，千分位不跳动。",
+      "空白态只写一句现状（「还没有节点」「这一年还没有记录」），不写操作指导。"
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "一屏里国道蓝只出现在「能点的东西」和「当前选中」上，占比不超过约 10%；它的稀缺就是它的含义。", "section": "colors" },
+      { "name": "The State-Only Rule", "body": "红/琥珀/绿永远只在真实状态上出现（保存成功、里程缺失、删除确认），不用来表示层级、分类或装饰。", "section": "colors" },
+      { "name": "The 14px Floor Rule", "body": "界面文字不得小于 0.875rem（14px）。MUI 默认的 Chip（13px）与 helperText（13px）都不合格，必须抬到 body2 档——户外光线下小字等于不存在。", "section": "typography" },
+      { "name": "The Tabular Numerals Rule", "body": "一切里程、数量、日期时间用 font-variant-numeric: tabular-nums；数字在刷新时不得左右跳动。", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "静止状态没有阴影；阴影只回答一个问题：「这一层是否浮在内容之上？」", "section": "elevation" }
+    ],
+    "dos": [
+      "Do 一切颜色、圆角、间距走主题令牌（apps/web/src/theme.ts），组件里只写令牌路径。",
+      "Do 里程、数量、日期时间用 tabular-nums，字号不低于 0.875rem。",
+      "Do 移动端关键操作（加节点、填里程、保存）放在拇指区，pointer: coarse 下命中区 ≥44px。",
+      "Do 状态色只在状态上出现，并配套真实文案（「已保存：10月9日 · 25 公里」）。",
+      "Do 空白态只写一句现状；错误态必须给出可操作出路（「重试」「补齐后才能保存」）。"
+    ],
+    "donts": [
+      "Don't 使用大色块英雄区、渐变文字、装饰性玻璃模糊、悬浮卡片阵——这套反例已被用户明确否决。",
+      "Don't 用红/琥珀/绿表示分类或层级（状态色只表示状态）。",
+      "Don't 给卡片加阴影，或用阴影建立层级（层级靠色调与描边）。",
+      "Don't 用小于 14px 的字号承载信息，也不要用灰色把次要信息压到 4.5:1 以下。",
+      "Don't 在界面里写实现细节（存储、框架、部署）或用户已知的解释性句子。"
+    ]
+  }
+}

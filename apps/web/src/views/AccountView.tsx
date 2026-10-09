@@ -33,9 +33,6 @@ interface AccountViewProps {
   onUserChanged: (user: UserDto) => void;
 }
 
-/** Chip 自带字号是 13px，低于 14px 的下限，这里统一抬到 body2。 */
-const CHIP_FONT_SX = { fontSize: "0.875rem" };
-
 /** 主题桌面端按钮只有 40px 高，这里保证可点区域 ≥44px。 */
 const TOUCH_SX = { minHeight: 44 };
 
@@ -93,7 +90,7 @@ export function SessionsCard({ sessions, error, revokingId, onRetry, onRevoke }:
                   {userAgentLabel(session.userAgent)}
                 </Typography>
                 {session.current ? (
-                  <Chip size="small" color="success" label="当前设备" sx={CHIP_FONT_SX} />
+                  <Chip size="small" color="success" label="当前设备" />
                 ) : null}
               </Stack>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>

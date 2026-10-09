@@ -112,7 +112,7 @@ export const theme: Theme = createTheme({
     h3: { fontSize: "1rem", fontWeight: 650, lineHeight: 1.4 },
     body1: { fontSize: "1rem", lineHeight: 1.6 },
     body2: { fontSize: "0.875rem", lineHeight: 1.55 },
-    caption: { fontSize: "0.8125rem", lineHeight: 1.45 },
+    caption: { fontSize: "0.875rem", lineHeight: 1.45 },
     button: { fontSize: "0.9375rem", fontWeight: 600 },
   },
   shape: { borderRadius: 12 },
@@ -142,6 +142,17 @@ export const theme: Theme = createTheme({
           },
         },
       }),
+    },
+    MuiButtonBase: {
+      styleOverrides: {
+        // 键盘焦点必须看得见：统一 2px 主色描边（≥3:1），鼠标操作不触发
+        root: ({ theme: t }) => ({
+          "&.Mui-focusVisible": {
+            outline: `2px solid ${t.palette.primary.dark}`,
+            outlineOffset: 2,
+          },
+        }),
+      },
     },
     MuiButton: {
       defaultProps: { disableElevation: true },
@@ -178,6 +189,10 @@ export const theme: Theme = createTheme({
           fontWeight: 600,
           "@media (pointer: coarse)": { height: 44 },
         },
+        label: {
+          // MUI 默认 13px（size=small 时 12px）：低于 14px 下限，统一抬到 body2
+          fontSize: "0.875rem",
+        },
         deleteIcon: {
           // 删除一个节点是不可逆操作：把可点区域从 MUI 默认的裸 SVG（约 20px）放大到约 38px
           fontSize: 22,
@@ -204,6 +219,24 @@ export const theme: Theme = createTheme({
     MuiTextField: {
       defaultProps: { variant: "outlined", size: "medium" },
     },
+    MuiInputLabel: {
+      styleOverrides: {
+        // 标签两种状态都显式指定：静止 16px、收缩 14px（MUI 收缩态是 16px × scale(0.75) = 12px，低于下限）
+        root: {
+          fontSize: "1rem",
+          "&.MuiInputLabel-shrink": {
+            fontSize: "0.875rem",
+            transform: "translate(14px, -9px) scale(1)",
+          },
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        // MUI 默认 13px；说明/错误文案也要读得清
+        root: { fontSize: "0.875rem" },
+      },
+    },
     MuiCard: {
       defaultProps: { variant: "outlined" },
       styleOverrides: { root: { borderRadius: 14 } },
@@ -224,21 +257,6 @@ export const theme: Theme = createTheme({
       styleOverrides: {
         root: { height: 8, borderRadius: 999 },
         bar: { borderRadius: 999 },
-      },
-    },
-    MuiBottomNavigation: {
-      styleOverrides: {
-        root: ({ theme: t }) => ({
-          height: 62,
-          backgroundColor: t.palette.background.paper,
-          borderTop: `1px solid ${t.palette.divider}`,
-        }),
-      },
-    },
-    MuiBottomNavigationAction: {
-      styleOverrides: {
-        root: { minWidth: 56, paddingTop: 8 },
-        label: { fontSize: "0.8125rem" },
       },
     },
     MuiToggleButton: {

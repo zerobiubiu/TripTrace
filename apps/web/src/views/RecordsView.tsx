@@ -8,9 +8,6 @@ import type { Trip } from "../types";
 /** 首屏只渲染最新的 60 条，避免上百条行程一次全部挂载。 */
 const PAGE_SIZE = 60;
 
-/** Chip 自带字号是 13px（`size="small"` 为 12px），低于关键数字的 14px 下限，这里统一抬到 body2。 */
-const CHIP_FONT_SX = { fontSize: "0.875rem" };
-
 interface RecordsViewProps {
   trips: Trip[];
   onEdit: (trip: Trip) => void;
@@ -108,7 +105,7 @@ export function RecordsView({ trips, onEdit, onDelete }: RecordsViewProps) {
                     <Typography variant="body2" sx={{ color: "text.secondary" }}>
                       {weekdayLabel(day.date)}
                     </Typography>
-                    <Chip size="small" label={`${formatKm(dayKm)} 公里`} sx={{ ...CHIP_FONT_SX, ml: "auto" }} />
+                    <Chip size="small" label={`${formatKm(dayKm)} 公里`} sx={{ ml: "auto" }} />
                   </Stack>
 
                   <Stack spacing={1}>
@@ -132,10 +129,9 @@ export function RecordsView({ trips, onEdit, onDelete }: RecordsViewProps) {
                                   size="small"
                                   color={missingKm ? "warning" : "primary"}
                                   label={missingKm ? "未填里程" : `${formatKm(trip.totalKm)} 公里`}
-                                  sx={CHIP_FONT_SX}
                                 />
                                 {trip.source === "import" ? (
-                                  <Chip size="small" color="default" label="导入" sx={CHIP_FONT_SX} />
+                                  <Chip size="small" color="default" label="导入" />
                                 ) : null}
                                 {trip.note ? (
                                   <Typography variant="body2" sx={{ color: "text.secondary" }}>

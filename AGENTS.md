@@ -16,8 +16,8 @@ bun workspaces 三包，前后端分离、各自独立部署：
 
 ## 前端 UI
 
-- UI 一律用 MUI v9 组件与 `sx`；不新增手写 CSS 文件，`apps/web/src/app.css` 只放全局基线（`html/body`、安全区变量）。
-- 颜色、圆角、间距一律走 `apps/web/src/theme.ts` 的令牌；组件里不写死颜色；字号下限 14px（MUI 默认 Chip / Caption 偏小，需要时抬到 `body2` 档）。
+- UI 一律用 MUI v9 组件与 `sx`；不新增手写 CSS 文件，`apps/web/src/app.css` 只放全局基线（`html/body`、安全区变量）。视觉规范以 [apps/web/DESIGN.md](apps/web/DESIGN.md) 为准（令牌、14px 地板、焦点环、深度立场）；改主题时同步该文件与 `apps/web/.impeccable/design.json`。
+- 颜色、圆角、间距一律走 `apps/web/src/theme.ts` 的令牌；组件里不写死颜色；字号下限 14px（MUI 默认的小字号已在主题里统一抬升：InputLabel / FormHelperText / Chip / caption / 日期弹层；新组件若带更小的默认值，改主题，不要在视图里逐处打补丁）。
 - 图标用 `@mui/icons-material`，不用 emoji 或 unicode 字符当图标；移动端核心路径触摸目标 ≥44px；可交互元素必须带 `role` / `aria-label` 且可键盘聚焦。
 - 分组导航内联在标题栏（移动端与桌面端同形态）；不要另起侧栏或底部导航。日期/时间选择统一用 `@mui/x-date-pickers`（dayjs 适配器 + 中文 `localeText`），不要用原生 `input[type=date]`。
 - 界面文案只写可操作信息：不写实现细节（存储、框架、部署），不写用户已知的解释性句子。
