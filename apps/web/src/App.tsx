@@ -331,9 +331,10 @@ export function App() {
         sx={{
           flex: 1,
           width: "100%",
-          maxWidth: 1240,
+          // 桌面形态：≥1024 收在 1240；≥1536 放到 1320（两栏版式需要横向余量）。再宽也不放开，避免大屏把内容拉散
+          maxWidth: { lg: 1240, xl: 1320 },
           mx: "auto",
-          px: 2,
+          px: { xs: 2, lg: 3 },
           pt: 2,
         }}
       >

@@ -147,6 +147,10 @@ export const theme: Theme = createTheme({
     button: { fontSize: "0.9375rem", fontWeight: 600 },
   },
   shape: { borderRadius: 14 }, // 兜底值（= radius.control）：未被显式覆盖的 MUI 结构落在中间档
+  // 断点词汇：本项目只认三条线——sm 600（大屏手机）、md 900（平板横屏起）、**lg 1024＝桌面形态**。
+  // MUI 默认 lg 是 1200，会让 1024–1199 的笔记本停在「平板形态」里，与 app.css 的 1024 两栏判定不一致；
+  // 因此把 lg 收到 1024，让 JS（useMediaQuery）与 CSS（@media min-width）说同一件事。
+  breakpoints: { values: { xs: 0, sm: 600, md: 900, lg: 1024, xl: 1536 } },
   components: {
     // 下面各处的 borderRadius 数字就是 `radius` 令牌的字面值：theme 的 styleOverrides 不做乘法
     // （`sx` 里的数字会被乘上 shape.borderRadius，所以视图要用字符串令牌，别在这里踩坑）。

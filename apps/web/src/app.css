@@ -27,10 +27,12 @@ body {
   flex-direction: column;
 }
 
+/* 底部留白：固定保存条只在「填报」页、且只在手机/平板形态（<1024）出现，由 .tt-entry-grid 自己让出 88px；
+   这里只留普通页脚间距——否则记录/汇总/导入/账号各页底部都会白白多出一块整屏空白 */
 .tt-main {
   flex: 1;
   min-width: 0;
-  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
 }
 
 .tt-footer {
@@ -50,21 +52,52 @@ body {
   border: 0;
 }
 
-/* 填报页：手机单列；宽屏双列 */
-.tt-entry-grid {
+/* ≤359px 的窄屏放不下「品牌文字 + 四个分组 + ⋯」：品牌收成图标（h1 仍在无障碍树里，只是不可见），
+   腾出的宽度给分组导航，否则最后一个分组会被裁在横向滚动区外 */
+@media (max-width: 359px) {
+  .tt-brand-word {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* 断点词汇（与 theme.ts 的 breakpoints.values 同源，不许各写各的）：
+   <1024 = 手机/平板形态（单列；填报页保留底部保存条）｜≥1024 = 桌面形态（双列） */
+.tt-entry-grid,
+.tt-query-grid {
   display: grid;
   gap: 12px;
 }
 
-@media (min-width: 900px) {
-  .tt-main {
-    padding-bottom: 16px;
-  }
-}
-
-@media (min-width: 1180px) {
+@media (min-width: 1024px) {
+  /* 填报页：左表单 / 右当日记录与常用路线 */
   .tt-entry-grid {
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
     align-items: start;
+  }
+
+  /* 记录页与汇总页：左查询栏（汇总页含读数带）/ 右结果列表；查询栏常驻，长列表滚动时不用回头 */
+  .tt-query-grid {
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  /* 查询栏固定在第 1 列并吸顶；其余内容（摘要、分组 / 榜单、分页）自动落进第 2 列，
+     所以视图里不必再包一层容器 */
+  .tt-query-grid > .tt-query-rail {
+    grid-column: 1;
+    position: sticky;
+    top: 72px;
+  }
+
+  .tt-query-grid > :not(.tt-query-rail) {
+    grid-column: 2;
   }
 }

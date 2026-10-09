@@ -103,8 +103,8 @@ function passwordIssue(value: string): string {
 
 export function AdminView({ notify, onSessionInvalid, currentUserId }: AdminViewProps) {
   const theme = useTheme();
-  /** ≥md 表格形态；<md（手机/窄窗）卡片形态，避免靠横向滚动找「操作」列。 */
-  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
+  /** ≥1024（lg）表格形态；更窄（含 768–1023 的平板）用卡片形态，避免靠横向滚动找「操作」列。 */
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
   const [users, setUsers] = useState<AdminUserRow[] | null>(null);
   const [loadError, setLoadError] = useState("");
   const [resetTarget, setResetTarget] = useState<AdminUserRow | null>(null);

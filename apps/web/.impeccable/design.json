@@ -87,9 +87,13 @@
       { "name": "reduced-motion", "value": "@media (prefers-reduced-motion: reduce) → animation/transition 0.01ms，仅保留颜色与透明度反馈", "purpose": "关闭位移与循环动画，不牺牲状态可见性。" }
     ],
     "breakpoints": [
-      { "name": "container", "value": "1240px" },
-      { "name": "md", "value": "900px" },
-      { "name": "lg", "value": "1180px" },
+      { "name": "container", "value": "1240px（≥1024）/ 1320px（≥1536）", "purpose": "桌面收窄在 1240，大屏放到 1320；再宽不放开，避免内容被拉散。" },
+      { "name": "sm", "value": "600px", "purpose": "大屏手机：标题栏恢复品牌文字与更大间距。" },
+      { "name": "md", "value": "900px", "purpose": "横屏手机 / 小平板；两栏版式不使用它。" },
+      { "name": "lg (desktop)", "value": "1024px", "purpose": "桌面形态起线：两栏版式与表格形态；MUI 默认 lg 是 1200，本项目收到 1024。" },
+      { "name": "xl", "value": "1536px", "purpose": "大屏：容器放到 1320。" },
+      { "name": "short-viewport", "value": "@media (max-height: 480px)", "purpose": "横屏手机：保存条收成约 56px，把高度让给路线编辑区。" },
+      { "name": "narrow-phone", "value": "@media (max-width: 359px)", "purpose": "窄屏：品牌文字收进屏幕阅读器，把宽度让给分组导航。" },
       { "name": "coarse-pointer", "value": "@media (pointer: coarse)" }
     ]
   },

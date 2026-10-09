@@ -154,8 +154,8 @@ export function StatsView({ trips, onDrill }: StatsViewProps) {
   };
 
   return (
-    <Stack spacing={1.5}>
-      <Card>
+    <Box className="tt-query-grid">
+      <Card className="tt-query-rail">
         <CardContent>
           <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
             查询条件
@@ -283,6 +283,6 @@ export function StatsView({ trips, onDrill }: StatsViewProps) {
           )}
         </CardContent>
       </Card>
-    </Stack>
+    </Box>
   );
 }

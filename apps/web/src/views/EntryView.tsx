@@ -65,7 +65,8 @@ export function EntryView({
   onDeleteTrip,
 }: EntryViewProps) {
   const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
+  // 桌面形态＝≥1024（theme.breakpoints.values.lg）；小于它一律算手机/平板形态（768–1023 与手机同形，只放宽宽度）
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
   const [attempted, setAttempted] = useState(false);
 
   const nodeOptionsFor = (position: number, query: string) => {
@@ -312,12 +313,32 @@ export function EntryView({
             borderColor: "divider",
           }}
         >
-          <Stack direction="row" spacing={1} sx={{ p: 1.25, alignItems: "center" }}>
+          {/* 横屏手机只有 320–430px 高：保存条压到约 56px，把高度让给路线编辑区 */}
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              p: 1.25,
+              alignItems: "center",
+              "@media (max-height: 480px)": { py: 0.5 },
+            }}
+          >
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              <Typography
+                variant="caption"
+                sx={{ color: "text.secondary", "@media (max-height: 480px)": { display: "none" } }}
+              >
                 总里程
               </Typography>
-              <Typography variant="h5" component="p" sx={{ fontVariantNumeric: "tabular-nums", lineHeight: 1.2 }}>
+              <Typography
+                variant="h5"
+                component="p"
+                sx={{
+                  fontVariantNumeric: "tabular-nums",
+                  lineHeight: 1.2,
+                  "@media (max-height: 480px)": { fontSize: "1rem", lineHeight: 1.5 },
+                }}
+              >
                 {totalKm === null ? "—" : `${formatKm(totalKm)} 公里`}
               </Typography>
             </Box>

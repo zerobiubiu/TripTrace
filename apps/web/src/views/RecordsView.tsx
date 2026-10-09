@@ -129,7 +129,7 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete }:
   );
 
   const queryCard = (
-    <Card variant="outlined">
+    <Card variant="outlined" className="tt-query-rail">
       <CardContent>
         <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
           查询条件
@@ -208,15 +208,15 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete }:
 
   if (trips.length === 0) {
     return (
-      <Stack spacing={1.5}>
+      <Box className="tt-query-grid">
         {queryCard}
         <Alert severity="info">还没有行程记录，去「填报」添加第一条吧。</Alert>
-      </Stack>
+      </Box>
     );
   }
 
   return (
-    <Stack spacing={1.5}>
+    <Box className="tt-query-grid">
       {queryCard}
 
       {matched.length === 0 ? (
@@ -279,6 +279,6 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete }:
           显示更多（还有 {remaining} 条）
         </Button>
       ) : null}
-    </Stack>
+    </Box>
   );
 }

@@ -23,6 +23,7 @@
 | `changes/` | [0014-quiet-mileage-reading.md](changes/0014-quiet-mileage-reading.md) | 变更记录 | 已执行 | 记录页的总公里数由蓝色胶囊改为读数写法（0.9.2，`/impeccable quieter`）；缺里程改用状态色文字，当日合计与月度合计同写法 |
 | `changes/` | [0015-shared-trip-card.md](changes/0015-shared-trip-card.md) | 变更记录 | 已执行 | 行程卡抽成 `components/TripCard.tsx`（两页共用，含 `MileageReading` 读数原子）（0.9.3）：填报页当日记录同步改掉胶囊，消除备注漂移 |
 | `changes/` | [0016-route-editor.md](changes/0016-route-editor.md) | 变更记录 | 已执行 | 节点与分段里程融为一体（0.10.0）：`RouteEditor` + `NodeNameField`（先选后输、不弹键盘）、候选按使用频率排序（口径明确）、修复空节点追加导致里程静默丢失 |
+| `changes/` | [0017-responsive-forms.md](changes/0017-responsive-forms.md) | 变更记录 | 已执行 | 多形态适配（0.11.0，`/impeccable adapt`）：手机/平板/桌面三分（桌面 ≥1024 两栏 + 记录与汇总的吸顶查询栏）、断点词汇收敛到 1024、窄屏导航与底部留白修正、横屏紧凑保存条 |
 | 同目录 | [../apps/web/DESIGN.md](../apps/web/DESIGN.md) | 设计系统 | 已执行 | 视觉系统的规范来源（令牌 frontmatter + 八节）；侧车在 `apps/web/.impeccable/design.json` |
 | `troubleshooting/` | [0001-auth-and-session-ops.md](troubleshooting/0001-auth-and-session-ops.md) | 排查手册 | 参考 | PBKDF2 迭代上限与 CPU 额度取舍；手动删用户后的会话缓存清理步骤 |
 | `troubleshooting/` | [0002-workspace-tooling-gotchas.md](troubleshooting/0002-workspace-tooling-gotchas.md) | 排查手册 | 参考 | workspaces 拆分后的工具链坑：shim 残留、全局 vite 抢占、Pages 项目创建与自定义域 DNS、TS7 baseUrl |
