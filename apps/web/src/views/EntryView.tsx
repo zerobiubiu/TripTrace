@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  Autocomplete,
   Box,
   Button,
   Card,
@@ -18,16 +17,15 @@ import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
 import { DateField } from "../components/DateField";
-import { NodeEditor } from "../components/NodeEditor";
+import { RouteEditor } from "../components/RouteEditor";
 import { TripCard } from "../components/TripCard";
-import { radius } from "../theme";
 import {
   createEntryForm,
   formKmIssues,
   formNodeNameIssues,
   formTotalKm,
   withLegValue,
-  withNodeAdded,
+  withNodeAppended,
   withNodeMoved,
   withNodeRenamed,
   withNodeRemoved,
@@ -52,8 +50,6 @@ interface EntryViewProps {
   onDeleteTrip: (trip: Trip) => void;
 }
 
-const KM_HELP = "里程需在 0 - 100000 之间";
-
 export function EntryView({
   form,
   updateForm,
@@ -70,18 +66,15 @@ export function EntryView({
 }: EntryViewProps) {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
-  const [query, setQuery] = useState("");
   const [attempted, setAttempted] = useState(false);
 
-  // 只排除「上一个节点」，允许回头节点（旗舰路线 家→圣润→天九→圣润→家 需要重复 圣润 与 家）
-  const lastNodeName = form.nodes[form.nodes.length - 1]?.name ?? "";
-  const lastNode = lastNodeName ? [lastNodeName] : [];
-  const suggestions = useMemo(
-    () => suggestNodeNames(index, query, lastNode, 8),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [index, query, form.nodes.length, lastNodeName],
-  );
-  const nodeOptions = useMemo(() => suggestions.map((entry) => entry.name), [suggestions]);
+  const nodeOptionsFor = (position: number, query: string) => {
+    // 只排除「上一个节点」，允许回头节点（旗舰路线 家→圣润→天九→圣润→家 需要重复 圣润 与 家）；
+    // 候选顺序 = 模糊匹配相关性 + 使用频率（口径见 suggest.ts），**与路线实际顺序无关**
+    const previous = position > 0 ? [form.nodes[position - 1]?.name ?? ""] : [];
+    return suggestNodeNames(index, query, previous, 8).map((entry) => entry.name);
+  };
+
   const quickRoutes = useMemo(() => recentRoutes(index, trips, 6), [index, trips]);
   const dayTrips = useMemo(() => trips.filter((trip) => trip.date === form.date), [trips, form.date]);
 
@@ -90,13 +83,6 @@ export function EntryView({
   const totalKm = formTotalKm(form);
   const dayKm = Math.round(dayTrips.reduce((sum, trip) => sum + (trip.totalKm ?? 0), 0) * 100) / 100;
   const dayMissing = dayTrips.filter((trip) => trip.totalKm === null || trip.totalKm === undefined).length;
-
-  const addNode = (raw: string) => {
-    const name = raw.trim();
-    if (!name) return;
-    updateForm((current) => withNodeAdded(current, name, index));
-    setQuery("");
-  };
 
   const handleSaveClick = () => {
     setAttempted(true);
@@ -167,51 +153,30 @@ export function EntryView({
         <Card>
           <CardContent>
             <Typography variant="h3" component="h3" sx={{ mb: 0.5 }}>
-              路线节点（顺序决定路线）
+              路线（顺序与分段里程）
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
               {form.nodes.length === 0
-                ? "还没有节点，例如：家 → 圣润 → 天九"
-                : "拖左侧手柄调整顺序；改动顺序会立刻重算分段与总里程。"}
+                ? "还没有节点，例如：家 → 圣润 → 天九。点「添加节点」开始，节点名可以先从常用里选。"
+                : "点节点名可从常用节点里选（不会弹键盘）；右侧键盘图标才进入手动输入。拖左侧手柄调整顺序。"}
             </Typography>
 
             {form.nodes.length > 0 ? (
-              <NodeEditor
+              <RouteEditor
                 nodes={form.nodes}
+                legs={form.legs}
                 showEmptyError={attempted}
-                onRename={(nodeId, name) => updateForm((current) => withNodeRenamed(current, nodeId, name))}
+                legIssues={issues}
+                optionsFor={nodeOptionsFor}
+                onRename={(nodeId, name) => updateForm((current) => withNodeRenamed(current, nodeId, name, index))}
                 onRemove={(nodeId) => updateForm((current) => withNodeRemoved(current, nodeId, index))}
                 onMove={(nodeId, toIndex) => updateForm((current) => withNodeMoved(current, nodeId, toIndex, index))}
+                onLegChange={(legIndex, value) => updateForm((current) => withLegValue(current, legIndex, value))}
               />
             ) : null}
 
-            <Autocomplete
-              freeSolo
-              autoHighlight
-              options={nodeOptions}
-              filterOptions={(options) => options}
-              inputValue={query}
-              value={null}
-              onInputChange={(_event, value) => setQuery(value)}
-              onChange={(_event, value) => {
-                if (typeof value === "string") addNode(value);
-              }}
-              renderOption={(props, option) => {
-                const { key, ...rest } = props as typeof props & { key: React.Key };
-                return (
-                  <Box component="li" key={key} {...rest}>
-                    <span>{option}</span>
-                  </Box>
-                );
-              }}
-              renderInput={(params) => (
-                <TextField {...params} label="节点名称" placeholder="回车添加" />
-              )}
-              sx={{ mt: form.nodes.length > 0 ? 2 : 0, mb: 1.5 }}
-            />
-
-            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-              <Button variant="contained" onClick={() => addNode(query)}>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, mt: form.nodes.length > 0 ? 2 : 0 }}>
+              <Button variant="contained" onClick={() => updateForm((current) => withNodeAppended(current, index))}>
                 添加节点
               </Button>
               <Button
@@ -232,57 +197,6 @@ export function EntryView({
             </Stack>
           </CardContent>
         </Card>
-
-        {form.legs.length > 0 ? (
-          <Card>
-            <CardContent>
-              <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
-                分段里程（每段必填，默认带出历史值）
-              </Typography>
-              <Stack spacing={1}>
-                {form.legs.map((value, legIndex) => {
-                  const from = form.nodes[legIndex]?.name ?? "";
-                  const to = form.nodes[legIndex + 1]?.name ?? "";
-                  const invalid = issues.invalidLegIndexes.includes(legIndex);
-                  const missing = attempted && issues.missingLegIndexes.includes(legIndex);
-                  return (
-                    <Stack
-                      key={`${from}-${to}-${legIndex}`}
-                      direction="row"
-                      spacing={1}
-                      sx={{
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        rowGap: 1,
-                        p: 1,
-                        borderRadius: radius.control,
-                        bgcolor: "action.hover",
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {from} → {to}
-                      </Typography>
-                      <Box sx={{ flex: 1 }} />
-                      <TextField
-                        size="small"
-                        value={value}
-                        error={invalid || missing}
-                        helperText={invalid ? KM_HELP : missing ? "必填" : undefined}
-                        slotProps={{
-                          htmlInput: { inputMode: "decimal", "aria-label": `${from} 到 ${to} 的里程` },
-                        }}
-                        onChange={(event) =>
-                          updateForm((current) => withLegValue(current, legIndex, event.target.value))
-                        }
-                        sx={{ width: 124 }}
-                      />
-                    </Stack>
-                  );
-                })}
-              </Stack>
-            </CardContent>
-          </Card>
-        ) : null}
 
         <Card>
           <CardContent>

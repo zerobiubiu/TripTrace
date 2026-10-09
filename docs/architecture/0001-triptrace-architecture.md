@@ -111,12 +111,14 @@ apps/web/src/
 ├── lib/draft.ts              # 草稿持久化（localStorage，按用户隔离；登录与启动两条路径恢复）
 ├── lib/tripList.ts           # 本地列表更新
 ├── lib/version.ts            # 构建期注入的版本号
-├── components/               # TopBar（品牌 + 四个分组导航 + 账号菜单）/ Toasts / PasswordDialog / DateField / PillGroup / RangeControl / NodeEditor / TripCard（两页共用的行程卡 + MileageReading 读数原子）（全部 MUI）
+├── components/               # TopBar（品牌 + 四个分组导航 + 账号菜单）/ Toasts / PasswordDialog / DateField / PillGroup / RangeControl / RouteEditor（节点 + 分段一体的路线编辑）+ NodeNameField（先选后输的节点名控件）/ TripCard（两页共用的行程卡 + MileageReading 读数原子）（全部 MUI）
 ├── views/                    # AuthScreen / EntryView / RecordsView / StatsView / ImportView / AccountView / AdminView（后三者为懒加载）
 └── app.css                   # 仅全局基线与安全区，其余全部走 MUI
 ```
 
-**填报表单的节点模型**（0.9.0）：`EntryForm.nodes` 是 `{ id, name }` 数组，**认节点一律用 id**（增删、改名、拖动都以 id 定位）——拖动重排后下标会整体错位，拿下标当身份会删错人。`legs[i]` 恒为 `nodes[i] → nodes[i+1]` 的里程文本，**顺序是路线的唯一依据**：新增/删除/拖动都走同一条重建规则 `legsForNodes`（仍然相邻的端点对按先后取用原值、不分方向；新出现的相邻对留空再由历史默认值补齐），所以任何结构调整后分段与总里程都与当前顺序一致，且不会有数字留在它没填过的路段上。草稿落盘的仍是「名字数组」（磁盘格式不随内存里的 id 变化，旧草稿无需迁移）。拖动排序由 `components/NodeEditor.tsx` 承担（dnd-kit：`@dnd-kit/core` + `sortable` + `modifiers` + `utilities`，MIT）：**只有手柄是拖动激活器**，输入框内编辑不会误触发；键盘走 KeyboardSensor（空格拿起 → 方向键 → 空格放下），朗读文案为中文。
+**节点候选的频率口径**（0.10.0）：候选项来自 `lib/suggest.ts` 的 `buildIndex(trips)`——**每个节点名（归一化 + 小写）统计「包含它的行程条数」**，即用户已保存行程的使用频次；排序为「模糊匹配分层（前缀命中在前、包含在后）内按次数降序，次数相同按最近使用日期」。没有历史时候选为空（点开即进输入态）；保存新行程后索引随 `trips` 自动更新，不需要额外的存储或迁移。**候选顺序只表示常用程度，与路线实际顺序无关。**
+
+**填报表单的节点模型**（0.9.0，0.10.0 起节点与分段一体编辑）：`EntryForm.nodes` 是 `{ id, name }` 数组，**认节点一律用 id**（增删、改名、拖动都以 id 定位）——拖动重排后下标会整体错位，拿下标当身份会删错人。`legs[i]` 恒为 `nodes[i] → nodes[i+1]` 的里程文本，**不变量 `legs.length === max(0, nodes.length - 1)`**：新增/删除/拖动/追加空节点都走同一条重建规则 `legsForNodes`（仍然相邻的端点对按先后取用原值、不分方向；新出现的相邻对留空再由历史默认值补齐），所以任何结构调整后分段与总里程都与当前顺序一致。草稿落盘的仍是「名字数组」（磁盘格式不随内存里的 id 变化，旧草稿无需迁移）。路线编辑由 `components/RouteEditor.tsx` 一体渲染（节点行 + 行间的分段里程），节点名控件 `components/NodeNameField.tsx` 默认**选择态**（`readOnly`，不唤起软键盘），用户点键盘图标才进入输入态。
 
 导航：四个分组（填报 / 记录 / 汇总 / 导入）内联在标题栏（移动端与桌面端同形态）；账号自助与管理员后台从标题栏的账号菜单进入。日期选择统一用 `@mui/x-date-pickers`（dayjs 适配器 + 中文文案），共用只读日期字段 `components/DateField.tsx`（填报页与查询条件同一实现）。
 

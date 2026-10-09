@@ -120,9 +120,24 @@ export function withNodeAdded(form: EntryForm, rawName: string, index: SuggestIn
   return withLegDefaults({ ...form, nodes, legs: legsForNodes(nodes, form.nodes, form.legs) }, index, false);
 }
 
-/** 就地改名：只换这一个节点的名字，**不动任何里程**（已有的手填值不因为改名被覆盖）。 */
-export function withNodeRenamed(form: EntryForm, nodeId: string, name: string): EntryForm {
-  return { ...form, nodes: form.nodes.map((node) => (node.id === nodeId ? { ...node, name } : node)) };
+/**
+ * 追加一个**待命名的空节点**（0.10.0 起「添加节点」不再要求先打字：名字在行内先选后输）。
+ *
+ * 必须和增删/拖动一样重建分段：**不变量是 `legs.length === max(0, nodes.length - 1)`**——
+ * 漏了这一步会让界面画出分段条而 `legs` 里并没有对应项，用户输进去的里程会被静默丢掉（0.10.0 实测踩到过）。
+ */
+export function withNodeAppended(form: EntryForm, index: SuggestIndex | null): EntryForm {
+  const nodes = [...form.nodes, { id: newNodeId(), name: "" }];
+  return withLegDefaults({ ...form, nodes, legs: legsForNodes(nodes, form.nodes, form.legs) }, index, false);
+}
+
+/**
+ * 就地改名：只换这一个节点的名字，**不动已有里程**；但**空白**分段会按新名字重算历史默认值——
+ * 这正是「先选/输入节点名 → 相邻路段自动带出里程」的路径（改名后原本无历史可查的段，这时才查得到）。
+ */
+export function withNodeRenamed(form: EntryForm, nodeId: string, name: string, index: SuggestIndex | null): EntryForm {
+  const nodes = form.nodes.map((node) => (node.id === nodeId ? { ...node, name } : node));
+  return withLegDefaults({ ...form, nodes }, index, false);
 }
 
 export function withNodeRemoved(form: EntryForm, nodeId: string, index: SuggestIndex | null): EntryForm {
