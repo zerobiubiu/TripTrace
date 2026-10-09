@@ -12,6 +12,8 @@
 | `changes/` | [0003-pages-workers-split.md](changes/0003-pages-workers-split.md) | 变更记录 | 已执行 | 前后端分离与 Pages + Workers 双部署（0.3.0） |
 | `changes/` | [0004-mui-frontend-migration.md](changes/0004-mui-frontend-migration.md) | 变更记录 | 已执行 | 前端迁移到 MUI v9（0.3.0）：设计令牌体系、九项审计问题修复（触摸目标 / 对比度 / 草稿 / 启动失败屏 / 导入去重等） |
 | `changes/` | [0005-single-worker-topology.md](changes/0005-single-worker-topology.md) | 变更记录 | 已执行 | 部署拓扑合并为单 Worker（0.4.0）：静态资源 + API 一个部署物，Pages 项目停用，旧地址改前端跳转 |
+| `changes/` | [0006-entry-rules-nav-and-picker.md](changes/0006-entry-rules-nav-and-picker.md) | 变更记录 | 已执行 | 填报规则收紧与界面清理（0.5.0）：分段必填 + 反向推导默认值、导航并入标题栏、日期控件 x-date-pickers、文案清理 |
+| `changes/` | [0007-user-management.md](changes/0007-user-management.md) | 变更记录 | 已执行 | 用户管理（0.5.0）：管理员后台（列表/重置密码/启停/删除级联）+ 个人账号自助（显示名/设备会话） |
 | `troubleshooting/` | [0001-auth-and-session-ops.md](troubleshooting/0001-auth-and-session-ops.md) | 排查手册 | 参考 | PBKDF2 迭代上限与 CPU 额度取舍；手动删用户后的会话缓存清理步骤 |
 | `troubleshooting/` | [0002-workspace-tooling-gotchas.md](troubleshooting/0002-workspace-tooling-gotchas.md) | 排查手册 | 参考 | workspaces 拆分后的工具链坑：shim 残留、全局 vite 抢占、Pages 项目创建与自定义域 DNS、TS7 baseUrl |
 

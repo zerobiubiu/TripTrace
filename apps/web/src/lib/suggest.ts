@@ -30,7 +30,6 @@ export interface LegSuggestion {
   km: number;
   count: number;
   lastDate: string;
-  reversed: boolean;
 }
 
 export interface RouteHit {
@@ -148,16 +147,14 @@ export function suggestNodeNames(
   return [...starts, ...contains].slice(0, limit);
 }
 
-/** 分段里程建议：同方向历史优先；没有时退回反方向并标记 reversed。 */
+/** 分段里程建议：同方向历史优先；没有时按反方向推断（同一条路往返里程相同，界面不区分方向）。 */
 export function suggestLegKm(index: SuggestIndex | null, from: string, to: string): LegSuggestion | null {
   if (!index) return null;
   const forward = index.legSuggestions.get(legKey(from, to));
-  if (forward) return { ...forward, reversed: false };
+  if (forward) return { ...forward };
 
   const backward = index.legSuggestions.get(legKey(to, from));
-  if (backward) return { ...backward, reversed: true };
-
-  return null;
+  return backward ? { ...backward } : null;
 }
 
 export function findRoute(index: SuggestIndex | null, nodes: string[]): RouteHit | null {

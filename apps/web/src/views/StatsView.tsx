@@ -79,7 +79,7 @@ export function StatsView({ trips }: { trips: Trip[] }) {
           </Typography>
           {stats.tripCount === 0 ? (
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              这一年还没有记录；换一年看看，或先去填报页记一笔。
+              这一年还没有记录
             </Typography>
           ) : (
             <Stack spacing={1}>
@@ -118,7 +118,7 @@ export function StatsView({ trips }: { trips: Trip[] }) {
           </Typography>
           {stats.topLegs.length === 0 ? (
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              还没有分段里程数据；在填报时填写分段，或在导入时带上每段距离。
+              还没有分段里程数据
             </Typography>
           ) : (
             <Stack spacing={1}>

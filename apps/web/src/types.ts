@@ -22,7 +22,7 @@ export type {
 export interface ToastMessage {
   id: number;
   text: string;
-  kind: "info" | "error";
+  kind: "success" | "info" | "warning" | "error";
   /** 可恢复操作的撤销入口（例如清空节点链后的「撤销」）。 */
   action?: { label: string; run: () => void };
 }

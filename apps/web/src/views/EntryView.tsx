@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  Alert,
   Autocomplete,
   Box,
   Button,
@@ -16,6 +15,8 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
@@ -23,17 +24,14 @@ import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
 import {
   createEntryForm,
   formKmIssues,
-  legSuggestion,
-  totalHint,
+  formTotalKm,
   withLegValue,
   withNodeAdded,
   withNodeRemoved,
-  withRecalculatedTotal,
-  withRouteApplied,
   type EntryForm,
 } from "../lib/entry";
 import { chainText, formatDateLabel, formatKm, formatKmText, shiftDate, todayIso, weekdayLabel } from "../lib/format";
-import { findRoute, recentRoutes, suggestNodeNames, type RouteHit, type SuggestIndex } from "../lib/suggest";
+import { recentRoutes, suggestNodeNames, type RouteHit, type SuggestIndex } from "../lib/suggest";
 import type { Trip } from "../types";
 
 interface EntryViewProps {
@@ -44,6 +42,7 @@ interface EntryViewProps {
   tripsLoading: boolean;
   busy: boolean;
   onSave: () => void;
+  onInvalid: (message: string) => void;
   onQuickRoute: (route: RouteHit) => void;
   onClear: () => void;
   onLoadTrip: (trip: Trip) => void;
@@ -60,6 +59,7 @@ export function EntryView({
   tripsLoading,
   busy,
   onSave,
+  onInvalid,
   onQuickRoute,
   onClear,
   onLoadTrip,
@@ -68,6 +68,7 @@ export function EntryView({
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [query, setQuery] = useState("");
+  const [attempted, setAttempted] = useState(false);
 
   // 只排除「上一个节点」，允许回头节点（旗舰路线 家→圣润→天九→圣润→家 需要重复 圣润 与 家）
   const lastNode = form.nodes.length > 0 ? form.nodes.slice(-1) : [];
@@ -76,14 +77,12 @@ export function EntryView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [index, query, form.nodes.length, form.nodes[form.nodes.length - 1]],
   );
-  const suggestionCounts = useMemo(() => new Map(suggestions.map((entry) => [entry.name, entry.count])), [suggestions]);
   const nodeOptions = useMemo(() => suggestions.map((entry) => entry.name), [suggestions]);
-  const routeMatch = useMemo(() => findRoute(index, form.nodes), [index, form.nodes]);
   const quickRoutes = useMemo(() => recentRoutes(index, trips, 6), [index, trips]);
   const dayTrips = useMemo(() => trips.filter((trip) => trip.date === form.date), [trips, form.date]);
 
   const issues = formKmIssues(form);
-  const hint = totalHint(form);
+  const totalKm = formTotalKm(form);
   const dayKm = Math.round(dayTrips.reduce((sum, trip) => sum + (trip.totalKm ?? 0), 0) * 100) / 100;
   const dayMissing = dayTrips.filter((trip) => trip.totalKm === null || trip.totalKm === undefined).length;
 
@@ -94,8 +93,21 @@ export function EntryView({
     setQuery("");
   };
 
-  const applyRouteMatch = () => {
-    if (routeMatch) updateForm((current) => withRouteApplied(current, routeMatch, true));
+  const handleSaveClick = () => {
+    setAttempted(true);
+    if (form.nodes.length === 0) {
+      onInvalid("请先添加至少一个节点");
+      return;
+    }
+    if (issues.invalidLegIndexes.length > 0) {
+      onInvalid("有里程填写不规范（0 - 100000），改好后再保存");
+      return;
+    }
+    if (issues.missingLegIndexes.length > 0) {
+      onInvalid(`还有 ${issues.missingLegIndexes.length} 段里程没填，补齐后才能保存`);
+      return;
+    }
+    onSave();
   };
 
   const daySummary = tripsLoading
@@ -104,23 +116,8 @@ export function EntryView({
       ? "这一天还没有记录"
       : `这一天已录 ${dayTrips.length} 条 · 合计 ${formatKm(dayKm)} 公里${dayMissing > 0 ? ` · ${dayMissing} 条未填里程` : ""}`;
 
-  const totalField = (props: { size?: "small" | "medium"; label: string }) => (
-    <TextField
-      type="text"
-      label={props.label}
-      size={props.size}
-      value={form.total}
-      error={issues.totalInvalid}
-      helperText={issues.totalInvalid ? KM_HELP : undefined}
-      slotProps={{ htmlInput: { inputMode: "decimal", "aria-label": "总里程" } }}
-      onChange={(event) =>
-        updateForm((current) => ({ ...current, total: event.target.value, totalManual: true }))
-      }
-    />
-  );
-
   return (
-    <Box className="tt-entry-grid" sx={{ pb: isDesktop ? 0 : "calc(140px + env(safe-area-inset-bottom))" }}>
+    <Box className="tt-entry-grid" sx={{ pb: isDesktop ? 0 : "calc(88px + env(safe-area-inset-bottom))" }}>
       <Stack spacing={1.5}>
         <Card>
           <CardContent>
@@ -131,15 +128,20 @@ export function EntryView({
               >
                 <ChevronLeftRoundedIcon />
               </IconButton>
-              <TextField
-                type="date"
+              <DatePicker
                 label="日期"
-                value={form.date}
-                onChange={(event) =>
-                  updateForm((current) => ({ ...current, date: event.target.value || todayIso() }))
+                value={dayjs(form.date)}
+                format="YYYY/MM/DD"
+                onChange={(value) =>
+                  updateForm((current) => ({
+                    ...current,
+                    date: value && value.isValid() ? value.format("YYYY-MM-DD") : current.date,
+                  }))
                 }
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ width: 176 }}
+                slotProps={{
+                  textField: { sx: { width: 168 } },
+                  field: { clearable: false },
+                }}
               />
               <IconButton
                 aria-label="后一天"
@@ -181,7 +183,7 @@ export function EntryView({
                       label={name}
                       color="primary"
                       variant="outlined"
-                      onDelete={() => updateForm((current) => withNodeRemoved(current, nodeIndex))}
+                      onDelete={() => updateForm((current) => withNodeRemoved(current, nodeIndex, index))}
                       deleteIcon={
                         <CancelRoundedIcon
                           role="button"
@@ -190,7 +192,7 @@ export function EntryView({
                           onKeyDown={(event) => {
                             if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();
-                              updateForm((current) => withNodeRemoved(current, nodeIndex));
+                              updateForm((current) => withNodeRemoved(current, nodeIndex, index));
                             }
                           }}
                         />
@@ -215,16 +217,13 @@ export function EntryView({
               renderOption={(props, option) => {
                 const { key, ...rest } = props as typeof props & { key: React.Key };
                 return (
-                  <Box component="li" key={key} {...rest} sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                  <Box component="li" key={key} {...rest}>
                     <span>{option}</span>
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      用过 {suggestionCounts.get(option) ?? 0} 次
-                    </Typography>
                   </Box>
                 );
               }}
               renderInput={(params) => (
-                <TextField {...params} label="节点名称" placeholder="回车添加" helperText="输入后回车添加；↑↓ 选择历史节点" />
+                <TextField {...params} label="节点名称" placeholder="回车添加" />
               )}
               sx={{ mb: 1.5 }}
             />
@@ -236,7 +235,7 @@ export function EntryView({
               <Button
                 startIcon={<UndoRoundedIcon />}
                 disabled={form.nodes.length === 0}
-                onClick={() => updateForm((current) => withNodeRemoved(current, current.nodes.length - 1))}
+                onClick={() => updateForm((current) => withNodeRemoved(current, current.nodes.length - 1, index))}
               >
                 撤销上一个
               </Button>
@@ -244,21 +243,6 @@ export function EntryView({
                 清空
               </Button>
             </Stack>
-
-            {routeMatch ? (
-              <Alert
-                severity="info"
-                sx={{ mt: 2 }}
-                action={
-                  <Button size="small" color="info" variant="outlined" onClick={applyRouteMatch}>
-                    沿用这条
-                  </Button>
-                }
-              >
-                历史路线：{formatDateLabel(routeMatch.date)} · {formatKmText(routeMatch.totalKm)}
-                {routeMatch.count > 1 ? ` · 已走 ${routeMatch.count} 次` : ""}
-              </Alert>
-            ) : null}
           </CardContent>
         </Card>
 
@@ -266,14 +250,14 @@ export function EntryView({
           <Card>
             <CardContent>
               <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
-                分段里程（可不填，只填总里程也行）
+                分段里程（每段必填，默认带出历史值）
               </Typography>
               <Stack spacing={1}>
                 {form.legs.map((value, legIndex) => {
-                  const suggestion = legSuggestion(index, form, legIndex);
                   const from = form.nodes[legIndex] ?? "";
                   const to = form.nodes[legIndex + 1] ?? "";
                   const invalid = issues.invalidLegIndexes.includes(legIndex);
+                  const missing = attempted && issues.missingLegIndexes.includes(legIndex);
                   return (
                     <Stack
                       key={`${from}-${to}-${legIndex}`}
@@ -292,21 +276,11 @@ export function EntryView({
                         {from} → {to}
                       </Typography>
                       <Box sx={{ flex: 1 }} />
-                      {suggestion ? (
-                        <Button
-                          size="small"
-                          variant="text"
-                          onClick={() => updateForm((current) => withLegValue(current, legIndex, formatKm(suggestion.km)))}
-                        >
-                          {suggestion.reversed ? "反向 " : ""}
-                          {formatKm(suggestion.km)} 公里
-                        </Button>
-                      ) : null}
                       <TextField
                         size="small"
                         value={value}
-                        error={invalid}
-                        helperText={invalid ? KM_HELP : undefined}
+                        error={invalid || missing}
+                        helperText={invalid ? KM_HELP : missing ? "必填" : undefined}
                         slotProps={{
                           htmlInput: { inputMode: "decimal", "aria-label": `${from} 到 ${to} 的里程` },
                         }}
@@ -328,25 +302,9 @@ export function EntryView({
             <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
               总里程
             </Typography>
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
-              {isDesktop ? totalField({ label: "总里程" }) : null}
-              <Chip
-                size="small"
-                color={form.totalManual ? "default" : "primary"}
-                label={form.totalManual ? "手动填写" : "自动合计"}
-              />
-              <Button onClick={() => updateForm((current) => withRecalculatedTotal({ ...current, totalManual: false }))}>
-                按分段合计
-              </Button>
-            </Stack>
-            <Typography variant="body2" sx={{ color: "text.secondary", mt: 1 }}>
-              {hint.text}
+            <Typography variant="h5" component="p" sx={{ fontVariantNumeric: "tabular-nums" }}>
+              {totalKm === null ? "补齐分段后自动合计" : `${formatKm(totalKm)} 公里`}
             </Typography>
-            {hint.diffKm !== null ? (
-              <Alert severity="warning" sx={{ mt: 1 }}>
-                与总里程差 {formatKm(hint.diffKm)} 公里
-              </Alert>
-            ) : null}
 
             <TextField
               label="备注（可选）"
@@ -359,7 +317,7 @@ export function EntryView({
 
             {isDesktop ? (
               <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", rowGap: 1 }}>
-                <Button variant="contained" size="large" disabled={busy} onClick={onSave}>
+                <Button variant="contained" size="large" disabled={busy} onClick={handleSaveClick}>
                   {busy ? "保存中…" : form.editingId ? "保存修改" : "保存行程"}
                 </Button>
                 {form.editingId ? (
@@ -390,7 +348,7 @@ export function EntryView({
           <Card>
             <CardContent>
               <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
-                常用路线（点一下直接填）
+                常用路线
               </Typography>
               <Stack spacing={1}>
                 {quickRoutes.map((route) => (
@@ -459,15 +417,23 @@ export function EntryView({
             position: "fixed",
             left: 0,
             right: 0,
-            bottom: "calc(62px + env(safe-area-inset-bottom))",
+            bottom: 0,
+            pb: "env(safe-area-inset-bottom)",
             zIndex: (t) => t.zIndex.appBar - 1,
             borderTop: 1,
             borderColor: "divider",
           }}
         >
-          <Stack direction="row" spacing={1} sx={{ p: 1.25, alignItems: "flex-start" }}>
-            <Box sx={{ flex: 1 }}>{totalField({ label: "总里程", size: "small" })}</Box>
-            <Button variant="contained" size="large" disabled={busy} onClick={onSave} sx={{ minHeight: 48 }}>
+          <Stack direction="row" spacing={1} sx={{ p: 1.25, alignItems: "center" }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                总里程
+              </Typography>
+              <Typography variant="h5" component="p" sx={{ fontVariantNumeric: "tabular-nums", lineHeight: 1.2 }}>
+                {totalKm === null ? "—" : `${formatKm(totalKm)} 公里`}
+              </Typography>
+            </Box>
+            <Button variant="contained" size="large" disabled={busy} onClick={handleSaveClick} sx={{ minHeight: 48 }}>
               {busy ? "保存中…" : form.editingId ? "保存修改" : "保存"}
             </Button>
           </Stack>

@@ -72,3 +72,36 @@ export function weekdayLabel(date: string): string {
   if (Number.isNaN(time)) return "";
   return `星期${"日一二三四五六"[new Date(time).getDay()]}`;
 }
+
+/** 服务端 ISO 时间戳 → 本地时区的「YYYY年M月D日 HH:mm」；缺失或无法解析时返回 fallback。 */
+export function formatDateTimeLabel(iso: string | null | undefined, fallback = "无记录"): string {
+  if (!iso) return fallback;
+  const time = Date.parse(iso);
+  if (Number.isNaN(time)) return fallback;
+  const date = new Date(time);
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
+/** 把 User-Agent 归纳成「浏览器 · 系统」的短标签；认不出来时截断原文，避免整行被挤爆。 */
+export function userAgentLabel(userAgent: string): string {
+  const text = (userAgent ?? "").trim();
+  if (!text) return "未知设备";
+
+  // 顺序即优先级：Edge / Opera 的 UA 里也带 Chrome，iOS 上的 Chrome 是 CriOS
+  let browser = "";
+  if (/Edg\//.test(text)) browser = "Edge";
+  else if (/OPR\//.test(text)) browser = "Opera";
+  else if (/Firefox\//.test(text)) browser = "Firefox";
+  else if (/Chrome\/|CriOS\//.test(text)) browser = "Chrome";
+  else if (/Safari\//.test(text)) browser = "Safari";
+
+  let system = "";
+  if (/Windows/.test(text)) system = "Windows";
+  else if (/iPhone|iPad|iPod/.test(text)) system = "iOS";
+  else if (/Android/.test(text)) system = "Android";
+  else if (/Mac OS X|Macintosh/.test(text)) system = "macOS";
+  else if (/Linux/.test(text)) system = "Linux";
+
+  const label = [browser, system].filter(Boolean).join(" · ");
+  return label || (text.length > 32 ? `${text.slice(0, 32)}…` : text);
+}

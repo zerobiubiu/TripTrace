@@ -1,6 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { zhCN } from "@mui/x-date-pickers/locales";
+import "dayjs/locale/zh-cn";
 import { App } from "./App";
 import { theme } from "./theme";
 import "./app.css";
@@ -26,11 +30,18 @@ if (!container) throw new Error("缺少 #root 容器");
 if (!jumpToCanonical) {
   createRoot(container).render(
     <StrictMode>
-      {/* noSsr：纯 SPA，避免亮/暗双渲染与刷新闪烁；disableTransitionOnChange：切换配色时不做过渡 */}
-      <ThemeProvider theme={theme} noSsr disableTransitionOnChange>
-        <CssBaseline />
-        <App />
-      </ThemeProvider>
+      {/* 日期控件统一走 @mui/x-date-pickers（dayjs 适配器 + 中文文案） */}
+      <LocalizationProvider
+        dateAdapter={AdapterDayjs}
+        adapterLocale="zh-cn"
+        localeText={zhCN.components.MuiLocalizationProvider.defaultProps.localeText}
+      >
+        {/* noSsr：纯 SPA，避免亮/暗双渲染与刷新闪烁；disableTransitionOnChange：切换配色时不做过渡 */}
+        <ThemeProvider theme={theme} noSsr disableTransitionOnChange>
+          <CssBaseline />
+          <App />
+        </ThemeProvider>
+      </LocalizationProvider>
     </StrictMode>,
   );
 }

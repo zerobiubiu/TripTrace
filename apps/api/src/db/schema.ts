@@ -17,6 +17,8 @@ export const users = sqliteTable("users", {
   pwdIterations: integer("pwd_iterations").notNull(),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+  /** 非空表示已被管理员禁用：拒绝登录并使其所有会话失效。 */
+  disabledAt: text("disabled_at"),
 });
 
 export const sessions = sqliteTable(

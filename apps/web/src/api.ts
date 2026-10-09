@@ -1,6 +1,14 @@
 /** 与 Worker API 的交互封装：统一错误对象（message / code / status），并把网络故障与业务错误分开。 */
 
 import type { MeResponse, Trip, TripPayload, User } from "./types";
+// 管理端/账号自助的契约类型 types.ts 尚未转出，直接从契约包引入
+import type {
+  AdminUserListResponse,
+  OkResponse,
+  ProfilePatch,
+  SessionListResponse,
+  UserDto,
+} from "@triptrace/contracts";
 
 export interface ApiError extends Error {
   code?: string;
@@ -79,4 +87,17 @@ export const api = {
   deleteTrip: (id: string) => request<{ ok: boolean }>("DELETE", `/api/trips/${encodeURIComponent(id)}`),
   bulkImport: (trips: TripPayload[]) =>
     request<{ created: number; skipped: number }>("POST", "/api/trips/bulk", { trips }),
+
+  // 账号自助
+  updateProfile: (patch: ProfilePatch) => request<{ user: UserDto }>("PATCH", "/api/me", patch),
+  listSessions: () => request<SessionListResponse>("GET", "/api/me/sessions"),
+  revokeSession: (id: string) => request<OkResponse>("DELETE", `/api/me/sessions/${encodeURIComponent(id)}`),
+
+  // 用户管理（仅管理员）
+  adminListUsers: () => request<AdminUserListResponse>("GET", "/api/admin/users"),
+  adminSetDisabled: (id: string, disabled: boolean) =>
+    request<OkResponse>("PATCH", `/api/admin/users/${encodeURIComponent(id)}`, { disabled }),
+  adminSetPassword: (id: string, password: string) =>
+    request<OkResponse>("POST", `/api/admin/users/${encodeURIComponent(id)}/password`, { password }),
+  adminDeleteUser: (id: string) => request<OkResponse>("DELETE", `/api/admin/users/${encodeURIComponent(id)}`),
 };

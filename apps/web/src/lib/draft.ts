@@ -11,8 +11,6 @@ export interface StoredDraft {
   date: string;
   nodes: string[];
   legs: string[];
-  total: string;
-  totalManual: boolean;
   note: string;
   savedAt: string;
 }
@@ -21,6 +19,7 @@ function storageKey(userId: string): string {
   return `triptrace:draft:${userId}`;
 }
 
+/** 旧版本草稿（含 total/totalManual 等多余字段）同样通过校验：只取需要的那几个字段。 */
 function isStoredDraft(value: unknown): value is StoredDraft {
   if (typeof value !== "object" || value === null) return false;
   const draft = value as Record<string, unknown>;
@@ -28,8 +27,6 @@ function isStoredDraft(value: unknown): value is StoredDraft {
     typeof draft.date === "string" &&
     Array.isArray(draft.nodes) &&
     Array.isArray(draft.legs) &&
-    typeof draft.total === "string" &&
-    typeof draft.totalManual === "boolean" &&
     typeof draft.note === "string"
   );
 }
@@ -45,9 +42,9 @@ export function loadDraft(userId: string): StoredDraft | null {
   }
 }
 
-/** 表单为空（没有节点、备注、总里程）时不落盘，避免每次打开都恢复一份空草稿。 */
+/** 表单为空（没有节点、没有备注）时不落盘，避免每次打开都恢复一份空草稿。 */
 export function saveDraft(userId: string, form: EntryForm): void {
-  const isEmpty = form.nodes.length === 0 && !form.note.trim() && !form.total.trim();
+  const isEmpty = form.nodes.length === 0 && !form.note.trim();
   if (isEmpty) {
     clearDraft(userId);
     return;
@@ -56,8 +53,6 @@ export function saveDraft(userId: string, form: EntryForm): void {
     date: form.date,
     nodes: form.nodes,
     legs: form.legs,
-    total: form.total,
-    totalManual: form.totalManual,
     note: form.note,
     savedAt: new Date().toISOString(),
   };
@@ -81,9 +76,6 @@ export function draftToForm(draft: StoredDraft): EntryForm {
     date: draft.date,
     nodes: [...draft.nodes],
     legs: [...draft.legs],
-    total: draft.total,
-    totalManual: draft.totalManual,
-    suggestedTotal: null,
     note: draft.note,
     editingId: null,
   };

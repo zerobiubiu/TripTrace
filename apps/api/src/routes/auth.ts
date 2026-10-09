@@ -2,7 +2,7 @@
 
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import type { AuthResponse, MeResponse, OkResponse } from "@triptrace/contracts";
+import type { AuthResponse, MeResponse, OkResponse, ProfilePatch, SessionListResponse } from "@triptrace/contracts";
 import {
   allowRateLimited,
   assertSignupCode,
@@ -19,7 +19,15 @@ import {
   validateUsername,
   verifyPassword,
 } from "../lib/auth";
-import { refreshSessionCookie, requireSession, type AppEnv } from "../lib/context";
+import {
+  authedHandlers,
+  clearUserSessionCache,
+  isAdmin,
+  refreshSessionCookie,
+  requireSession,
+  sessionCacheKey,
+  type AppEnv,
+} from "../lib/context";
 import { assertSameOrigin, clientIp, HttpError, readJsonBody, SESSION_COOKIE } from "../lib/http";
 import * as store from "../lib/store";
 
@@ -28,6 +36,18 @@ const LOGIN_LIMIT_PER_IP = 30;
 const LOGIN_LIMIT_PER_USER = 10;
 const REGISTER_WINDOW_SEC = 60 * 60;
 const REGISTER_LIMIT_PER_IP = 10;
+const DISPLAY_NAME_MAX_LENGTH = 24;
+
+/** 个人资料的显示名：折叠空白后 trim，1..24 个字符（与注册的校验口径一致，但要求非空）。 */
+function validateProfileDisplayName(raw: unknown): string {
+  if (typeof raw !== "string") throw new HttpError(400, "invalid_display_name", "显示名必须是字符串");
+  const name = raw.replace(/\s+/g, " ").trim();
+  if (!name) throw new HttpError(400, "invalid_display_name", "显示名不能为空");
+  if ([...name].length > DISPLAY_NAME_MAX_LENGTH) {
+    throw new HttpError(400, "invalid_display_name", `显示名最多 ${DISPLAY_NAME_MAX_LENGTH} 个字符`);
+  }
+  return name;
+}
 
 export const authRoutes = new Hono<AppEnv>();
 
@@ -41,7 +61,57 @@ authRoutes.get("/me", async (c) => {
     user: session ? session.user : null,
     signupCodeRequired: Boolean(c.env.SIGNUP_CODE),
     version: c.env.APP_VERSION ?? "dev",
+    isAdmin: session ? isAdmin(c.env, session.user.username) : false,
   };
+  return c.json(payload);
+});
+
+/** 修改显示名：仅本人资料，会话缓存里的旧显示名一并作废。 */
+authRoutes.patch("/me", ...authedHandlers, async (c) => {
+  assertSameOrigin(c.req.raw, c.env);
+  const body = await readJsonBody<Partial<ProfilePatch> | null>(c.req.raw);
+  const displayName = validateProfileDisplayName(body?.displayName);
+
+  const db = c.get("db");
+  const user = c.get("user");
+  await store.updateUserDisplayName(db, user.id, displayName, new Date().toISOString());
+  // KV 会话缓存里存着旧显示名，清掉让下一次请求从 D1 回源（会话本身仍在 D1，不影响登录态）。
+  await clearUserSessionCache(c.env, user.id);
+
+  const payload: AuthResponse = { user: { id: user.id, username: user.username, displayName } };
+  return c.json(payload);
+});
+
+/** 登录设备列表：仅本人会话，最近活跃在前。 */
+authRoutes.get("/me/sessions", ...authedHandlers, async (c) => {
+  const rows = await store.listUserSessions(c.get("db"), c.get("user").id);
+  const currentSessionId = c.get("sessionId");
+  const payload: SessionListResponse = {
+    sessions: rows.map((row) => ({
+      id: row.id,
+      userAgent: row.userAgent?.trim() || "未知设备",
+      createdAt: row.createdAt,
+      lastSeenAt: row.lastSeenAt,
+      expiresAt: row.expiresAt,
+      current: row.id === currentSessionId,
+    })),
+  };
+  return c.json(payload);
+});
+
+/** 登出指定设备：只能操作自己的会话，跨用户一律 404。 */
+authRoutes.delete("/me/sessions/:id", ...authedHandlers, async (c) => {
+  assertSameOrigin(c.req.raw, c.env);
+  const db = c.get("db");
+  const userId = c.get("user").id;
+
+  const session = await store.findSessionForUser(db, userId, c.req.param("id"));
+  if (!session) throw new HttpError(404, "session_not_found", "会话不存在");
+
+  await store.deleteSessionById(db, session.id);
+  await c.env.SESSIONS.delete(sessionCacheKey(userId, session.tokenHash));
+
+  const payload: OkResponse = { ok: true };
   return c.json(payload);
 });
 
@@ -133,6 +203,10 @@ authRoutes.post("/auth/login", async (c) => {
   }
   if (!(await verifyPassword(user, password))) {
     throw new HttpError(401, "invalid_credentials", "用户名或密码不正确");
+  }
+  // 密码校验通过后再看禁用状态：对不存在与已禁用的账号保持同等的 PBKDF2 开销。
+  if (user.disabledAt) {
+    throw new HttpError(403, "disabled", "账号已被禁用，请联系管理员");
   }
 
   await clearRateLimit(c.env, "login:user", username);

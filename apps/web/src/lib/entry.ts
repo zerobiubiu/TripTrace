@@ -1,16 +1,18 @@
-/** 填报表单的纯函数逻辑：节点链、分段建议、总里程自动合计/手动覆盖。 */
+/**
+ * 填报表单的纯函数逻辑：节点链 + 分段里程。
+ *
+ * 规则（0.5.0 起）：**每一段里程都必须填**，否则不允许保存；总里程由分段合计得出，不再手填。
+ * 每段默认带出历史值：整条历史路线优先，其次同路段（含反方向——同一条路往返里程相同）。
+ */
 
 import type { Trip, TripPayload } from "../types";
 import { formatKm, kmState, normalizeName, parseKmInput, todayIso } from "./format";
-import { findRoute, suggestLegKm, type LegSuggestion, type RouteHit, type SuggestIndex } from "./suggest";
+import { findRoute, suggestLegKm, type LegSuggestion, type SuggestIndex } from "./suggest";
 
 export interface EntryForm {
   date: string;
   nodes: string[];
   legs: string[];
-  total: string;
-  totalManual: boolean;
-  suggestedTotal: number | null;
   note: string;
   editingId: string | null;
 }
@@ -20,9 +22,6 @@ export function createEntryForm(date = todayIso()): EntryForm {
     date,
     nodes: [],
     legs: [],
-    total: "",
-    totalManual: false,
-    suggestedTotal: null,
     note: "",
     editingId: null,
   };
@@ -40,55 +39,7 @@ export function legsSum(legs: string[]): { sum: number; any: boolean } {
   return { sum: Math.round(sum * 100) / 100, any };
 }
 
-/** 非手动模式下刷新总里程输入（有分段按分段合计，否则用历史路线建议值）。 */
-export function withRecalculatedTotal(form: EntryForm): EntryForm {
-  if (form.totalManual) return form;
-  const { sum, any } = legsSum(form.legs);
-  if (any) return { ...form, total: formatKm(sum) };
-  if (form.suggestedTotal !== null) return { ...form, total: formatKm(form.suggestedTotal) };
-  return { ...form, total: "" };
-}
-
-export function withRouteApplied(form: EntryForm, route: RouteHit | null, force: boolean): EntryForm {
-  if (!route) return form;
-  const next: EntryForm = {
-    ...form,
-    legs: form.legs.map((value, index) => {
-      if (!force && value) return value;
-      const km = route.legs[index]?.km;
-      return km === null || km === undefined ? value : formatKm(km);
-    }),
-    suggestedTotal: route.totalKm ?? form.suggestedTotal,
-    totalManual: force ? false : form.totalManual,
-  };
-  return withRecalculatedTotal(next);
-}
-
-export function withNodeAdded(form: EntryForm, rawName: string, index: SuggestIndex | null): EntryForm {
-  const name = normalizeName(rawName);
-  if (!name) return form;
-  const nodes = [...form.nodes, name];
-  const legs = form.nodes.length > 0 ? [...form.legs, ""] : form.legs;
-  return withRouteApplied({ ...form, nodes, legs }, findRoute(index, nodes), false);
-}
-
-export function withNodeRemoved(form: EntryForm, nodeIndex: number): EntryForm {
-  if (nodeIndex < 0 || nodeIndex >= form.nodes.length) return form;
-  const nodes = form.nodes.filter((_, index) => index !== nodeIndex);
-  const legs = [...form.legs];
-  if (legs.length > 0) {
-    const legIndex = nodeIndex >= legs.length ? legs.length - 1 : nodeIndex;
-    if (legIndex >= 0) legs.splice(legIndex, 1);
-  }
-  return withRecalculatedTotal({ ...form, nodes, legs });
-}
-
-export function withLegValue(form: EntryForm, legIndex: number, value: string): EntryForm {
-  const legs = form.legs.map((current, index) => (index === legIndex ? value : current));
-  return withRecalculatedTotal({ ...form, legs });
-}
-
-/** 某分段的建议里程：整条历史路线优先，其次同路段历史。 */
+/** 某分段的历史默认值：整条历史路线优先，其次同路段（含反方向）。 */
 export function legSuggestion(
   index: SuggestIndex | null,
   form: EntryForm,
@@ -97,36 +48,80 @@ export function legSuggestion(
   const route = findRoute(index, form.nodes);
   const routeKm = route?.legs[legIndex]?.km;
   if (routeKm !== null && routeKm !== undefined) {
-    return { km: routeKm, count: route?.count ?? 1, lastDate: route?.date ?? "", reversed: false };
+    return { km: routeKm, count: route?.count ?? 1, lastDate: route?.date ?? "" };
   }
   return suggestLegKm(index, form.nodes[legIndex] ?? "", form.nodes[legIndex + 1] ?? "");
 }
 
-/** 总里程提示：分段合计、历史路线参考、与手填总里程的差额。 */
-export function totalHint(form: EntryForm): { text: string; diffKm: number | null } {
-  const { sum, any } = legsSum(form.legs);
-  const total = parseKmInput(form.total);
-  const parts: string[] = [];
-  if (any) parts.push(`分段合计 ${formatKm(sum)} 公里`);
-  if (form.suggestedTotal !== null) parts.push(`历史路线 ${formatKm(form.suggestedTotal)} 公里`);
-
-  const diffKm = total !== null && any && Math.abs(total - sum) > 0.01 ? Math.abs(total - sum) : null;
-
-  if (!parts.length) return { text: "留空表示暂不填里程", diffKm: null };
-  return { text: parts.join(" · "), diffKm };
+/** 用历史值补齐空白分段；`force` 为真时连已填的也覆盖（用于一键沿用历史链）。 */
+function withLegDefaults(form: EntryForm, index: SuggestIndex | null, force: boolean): EntryForm {
+  const legs = form.legs.map((value, legIndex) => {
+    if (!force && value.trim()) return value;
+    const suggestion = legSuggestion(index, form, legIndex);
+    return suggestion ? formatKm(suggestion.km) : value;
+  });
+  return { ...form, legs };
 }
 
-export function tripToForm(trip: Trip): EntryForm {
-  return {
+export function withNodeAdded(form: EntryForm, rawName: string, index: SuggestIndex | null): EntryForm {
+  const name = normalizeName(rawName);
+  if (!name) return form;
+  const nodes = [...form.nodes, name];
+  const legs = form.nodes.length > 0 ? [...form.legs, ""] : form.legs;
+  return withLegDefaults({ ...form, nodes, legs }, index, false);
+}
+
+export function withNodeRemoved(form: EntryForm, nodeIndex: number, index: SuggestIndex | null): EntryForm {
+  if (nodeIndex < 0 || nodeIndex >= form.nodes.length) return form;
+  const nodes = form.nodes.filter((_, i) => i !== nodeIndex);
+  const legs = [...form.legs];
+  if (legs.length > 0) {
+    const legIndex = nodeIndex >= legs.length ? legs.length - 1 : nodeIndex;
+    if (legIndex >= 0) legs.splice(legIndex, 1);
+  }
+  return withLegDefaults({ ...form, nodes, legs }, index, false);
+}
+
+export function withLegValue(form: EntryForm, legIndex: number, value: string): EntryForm {
+  const legs = form.legs.map((current, index) => (index === legIndex ? value : current));
+  return { ...form, legs };
+}
+
+/** 整条链替换（常用路线 / 历史链填入）：分段按历史补齐（force 时覆盖）。 */
+export function withChainApplied(
+  form: EntryForm,
+  nodes: string[],
+  index: SuggestIndex | null,
+  force = true,
+): EntryForm {
+  return withLegDefaults(
+    { ...form, nodes: [...nodes], legs: nodes.slice(0, -1).map(() => "") },
+    index,
+    force,
+  );
+}
+
+/** 分段合计（只有每段都有效时才有值，避免把残缺输入当成总里程）。 */
+export function formTotalKm(form: EntryForm): number | null {
+  if (form.legs.length === 0) return null;
+  let sum = 0;
+  for (const value of form.legs) {
+    const km = parseKmInput(value);
+    if (km === null) return null;
+    sum += km;
+  }
+  return Math.round(sum * 100) / 100;
+}
+
+export function tripToForm(trip: Trip, index: SuggestIndex | null): EntryForm {
+  const form: EntryForm = {
     date: trip.date,
     nodes: [...trip.nodes],
     legs: (trip.legs ?? []).map((leg) => (leg.km === null || leg.km === undefined ? "" : formatKm(leg.km))),
-    total: trip.totalKm === null || trip.totalKm === undefined ? "" : formatKm(trip.totalKm),
-    totalManual: true,
-    suggestedTotal: trip.totalKm ?? null,
     note: trip.note ?? "",
     editingId: trip.id,
   };
+  return withLegDefaults(form, index, false);
 }
 
 export function formToPayload(form: EntryForm): TripPayload {
@@ -134,21 +129,24 @@ export function formToPayload(form: EntryForm): TripPayload {
   return {
     date: form.date,
     nodes,
-    legs: form.legs.map((value, index) => ({
-      from: nodes[index] ?? "",
-      to: nodes[index + 1] ?? "",
+    legs: form.legs.map((value, i) => ({
+      from: nodes[i] ?? "",
+      to: nodes[i + 1] ?? "",
       km: kmState(value).value,
     })),
-    totalKm: kmState(form.total).value,
+    totalKm: formTotalKm(form),
     note: form.note.trim(),
   };
 }
 
-/** 保存前的非法输入检查：非法就就地报错，不允许静默丢成「未填里程」。 */
-export function formKmIssues(form: EntryForm): { totalInvalid: boolean; invalidLegIndexes: number[] } {
+/** 保存前检查：`missing` 为空白分段，`invalid` 为不合规输入（就地报错，不允许静默丢成「未填里程」）。 */
+export function formKmIssues(form: EntryForm): { invalidLegIndexes: number[]; missingLegIndexes: number[] } {
   const invalidLegIndexes: number[] = [];
+  const missingLegIndexes: number[] = [];
   form.legs.forEach((value, index) => {
-    if (kmState(value).invalid) invalidLegIndexes.push(index);
+    const state = kmState(value);
+    if (state.invalid) invalidLegIndexes.push(index);
+    else if (state.value === null) missingLegIndexes.push(index);
   });
-  return { totalInvalid: kmState(form.total).invalid, invalidLegIndexes };
+  return { invalidLegIndexes, missingLegIndexes };
 }

@@ -20,7 +20,7 @@ body {
   overflow-wrap: break-word;
 }
 
-/* 移动端：底部固定导航；内容为其预留高度（含安全区） */
+/* 移动端：为填报页底部的固定保存条留高度（含安全区）；导航已在顶栏，无底部栏 */
 .tt-shell {
   min-height: 100vh;
   display: flex;
@@ -30,7 +30,7 @@ body {
 .tt-main {
   flex: 1;
   min-width: 0;
-  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
 .tt-footer {

@@ -88,14 +88,9 @@ export function AuthScreen({ signupCodeRequired, version, onAuthenticated }: Aut
               </Typography>
             </Stack>
 
-            <Stack spacing={0.5}>
-              <Typography variant="h1" component="h1">
-                {isRegister ? "创建账号" : "登录途迹"}
-              </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                记录每日出差行程的节点与里程，历史路线会自动帮你补全距离。
-              </Typography>
-            </Stack>
+            <Typography variant="h1" component="h1">
+              {isRegister ? "创建账号" : "登录途迹"}
+            </Typography>
 
             <ToggleButtonGroup
               exclusive
@@ -176,7 +171,7 @@ export function AuthScreen({ signupCodeRequired, version, onAuthenticated }: Aut
 
             <Stack spacing={0.5} sx={{ textAlign: "center" }}>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                在这台设备上保持登录；清理浏览器数据或修改密码后需要重新登录。
+                在这台设备上保持登录
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
                 途迹 TripTrace v{version}

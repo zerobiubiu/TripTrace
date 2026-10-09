@@ -44,6 +44,8 @@ export interface MeResponse {
   user: UserDto | null;
   signupCodeRequired: boolean;
   version: string;
+  /** 是否管理员（由服务端按 ADMIN_USERNAMES 判定） */
+  isAdmin: boolean;
 }
 
 export interface AuthResponse {
@@ -76,6 +78,52 @@ export interface ApiErrorBody {
   };
 }
 
+/** 用户管理（仅管理员）：用户列表行。 */
+export interface AdminUserRow {
+  id: string;
+  username: string;
+  displayName: string;
+  createdAt: string;
+  tripCount: number;
+  totalKm: number;
+  sessionCount: number;
+  /** 最近活跃（由会话的 last_seen_at 得出，无会话时为 null） */
+  lastSeenAt: string | null;
+  disabledAt: string | null;
+}
+
+export interface AdminUserListResponse {
+  users: AdminUserRow[];
+}
+
+/** 启用/禁用：true 表示禁用。 */
+export interface AdminUserPatch {
+  disabled: boolean;
+}
+
+export interface AdminSetPasswordPayload {
+  password: string;
+}
+
+/** 账号自助：当前用户的登录设备（会话）。 */
+export interface SessionRow {
+  id: string;
+  userAgent: string;
+  createdAt: string;
+  lastSeenAt: string;
+  expiresAt: string;
+  /** 是否是当前这台设备正在使用的会话 */
+  current: boolean;
+}
+
+export interface SessionListResponse {
+  sessions: SessionRow[];
+}
+
+export interface ProfilePatch {
+  displayName: string;
+}
+
 /** 「导入」页解析出来的单条记录（checked 是前端 UI 状态）。 */
 export interface ImportEntry {
   date: string;
@@ -90,4 +138,4 @@ export interface ImportParseResult {
   notes: string[];
 }
 
-export type TabKey = "entry" | "records" | "stats" | "import";
+export type TabKey = "entry" | "records" | "stats" | "import" | "account" | "admin";

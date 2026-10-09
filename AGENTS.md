@@ -19,6 +19,8 @@ bun workspaces 三包，前后端分离、各自独立部署：
 - UI 一律用 MUI v9 组件与 `sx`；不新增手写 CSS 文件，`apps/web/src/app.css` 只放全局基线（`html/body`、安全区变量）。
 - 颜色、圆角、间距一律走 `apps/web/src/theme.ts` 的令牌；组件里不写死颜色；字号下限 14px（MUI 默认 Chip / Caption 偏小，需要时抬到 `body2` 档）。
 - 图标用 `@mui/icons-material`，不用 emoji 或 unicode 字符当图标；移动端核心路径触摸目标 ≥44px；可交互元素必须带 `role` / `aria-label` 且可键盘聚焦。
+- 分组导航内联在标题栏（移动端与桌面端同形态）；不要另起侧栏或底部导航。日期/时间选择统一用 `@mui/x-date-pickers`（dayjs 适配器 + 中文 `localeText`），不要用原生 `input[type=date]`。
+- 界面文案只写可操作信息：不写实现细节（存储、框架、部署），不写用户已知的解释性句子。
 - 交互不得无声吞掉用户输入：失败写操作要保留草稿（`apps/web/src/lib/draft.ts`）；批量或破坏性操作要可撤销。
 - 启动阶段接口失败一律给**可重试的错误屏**，绝不降级成登录页（否则用户会误判为被登出）。
 

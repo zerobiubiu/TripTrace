@@ -14,17 +14,17 @@ export function Toasts({ toasts, onDismiss }: ToastsProps) {
   const current = toasts.length > 0 ? toasts[toasts.length - 1] : undefined;
   if (!current) return null;
 
-  const isError = current.kind === "error";
+  const isError = current.kind === "error" || current.kind === "warning";
   return (
     <Snackbar
       key={current.id}
       open
       autoHideDuration={isError || current.action ? 6000 : 3200}
       onClose={() => onDismiss(current.id)}
-      sx={{ bottom: { xs: "calc(152px + env(safe-area-inset-bottom))", md: 24 } }}
+      sx={{ bottom: { xs: "calc(96px + env(safe-area-inset-bottom))", md: 24 } }}
     >
       <Alert
-        severity={isError ? "error" : "info"}
+        severity={current.kind}
         variant="filled"
         onClose={() => onDismiss(current.id)}
         action={

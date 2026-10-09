@@ -12,12 +12,11 @@ import {
   Typography,
 } from "@mui/material";
 import { api, isNetworkFailure, isUnauthorized } from "./api";
-import { NavTabs } from "./components/NavTabs";
 import { PasswordDialog } from "./components/PasswordDialog";
 import { Toasts } from "./components/Toasts";
-import { TopBar } from "./components/TopBar";
+import { TAB_ITEMS, TopBar } from "./components/TopBar";
 import { clearDraft, draftSummary, draftToForm, loadDraft, saveDraft } from "./lib/draft";
-import { createEntryForm, formKmIssues, formToPayload, tripToForm, withRouteApplied, type EntryForm } from "./lib/entry";
+import { createEntryForm, formKmIssues, formToPayload, tripToForm, withChainApplied, type EntryForm } from "./lib/entry";
 import { chainText, formatDateLabel, formatKmText, todayIso } from "./lib/format";
 import { buildIndex, type RouteHit } from "./lib/suggest";
 import { removeTrip, upsertTrip } from "./lib/tripList";
@@ -30,10 +29,15 @@ import { EntryView } from "./views/EntryView";
 const RecordsView = lazy(() => import("./views/RecordsView").then((m) => ({ default: m.RecordsView })));
 const StatsView = lazy(() => import("./views/StatsView").then((m) => ({ default: m.StatsView })));
 const ImportView = lazy(() => import("./views/ImportView").then((m) => ({ default: m.ImportView })));
+const AccountView = lazy(() => import("./views/AccountView").then((m) => ({ default: m.AccountView })));
+const AdminView = lazy(() => import("./views/AdminView").then((m) => ({ default: m.AdminView })));
 
 type TripsState = "loading" | "ready" | "error";
 
-const TAB_TITLES: Record<TabKey, string> = { entry: "填报", records: "记录", stats: "汇总", import: "导入" };
+/** 顶栏四个分组的标签 + 菜单入口（账号/管理）的视图标题，供 sr-only 标题与导航共用。 */
+const VIEW_TITLES: Partial<Record<TabKey, string>> = { account: "账号", admin: "管理" };
+const tabTitle = (tab: TabKey): string =>
+  TAB_ITEMS.find((item) => item.key === tab)?.label ?? VIEW_TITLES[tab] ?? "";
 
 function ViewSkeleton() {
   return (
@@ -66,7 +70,7 @@ export function App() {
   }, []);
 
   const notify = useCallback(
-    (text: string, kind: "info" | "error" = "info", action?: { label: string; run: () => void }) => {
+    (text: string, kind: ToastMessage["kind"] = "info", action?: { label: string; run: () => void }) => {
       const id = (toastSeq.current += 1);
       setToasts((current) => [...current, { id, text, kind, action }]);
     },
@@ -158,7 +162,13 @@ export function App() {
         user,
         signupCodeRequired: current?.signupCodeRequired ?? false,
         version: current?.version ?? appVersion,
+        isAdmin: false,
       }));
+      // 登录/注册响应不含管理员标记，用 /api/me 补齐（失败只影响「管理」入口是否出现，不阻塞登录）
+      void api
+        .me()
+        .then((payload) => setMe(payload))
+        .catch(() => undefined);
       setTab("entry");
       restoreDraft(user.id);
       await loadTrips();
@@ -173,8 +183,12 @@ export function App() {
       return;
     }
     const issues = formKmIssues(form);
-    if (issues.totalInvalid || issues.invalidLegIndexes.length > 0) {
+    if (issues.invalidLegIndexes.length > 0) {
       notify("有里程填写不规范（需在 0 - 100000 之间），改好后再保存", "error");
+      return;
+    }
+    if (issues.missingLegIndexes.length > 0) {
+      notify(`还有 ${issues.missingLegIndexes.length} 段里程没填，补齐后才能保存`, "error");
       return;
     }
     setBusy(true);
@@ -203,16 +217,10 @@ export function App() {
   const handleQuickRoute = useCallback(
     (route: RouteHit) => {
       const snapshot = form;
-      setForm((current) =>
-        withRouteApplied(
-          { ...current, nodes: [...route.nodes], legs: route.nodes.slice(0, -1).map(() => ""), totalManual: false },
-          route,
-          true,
-        ),
-      );
+      setForm((current) => withChainApplied(current, route.nodes, index));
       notify(`已填入「${chainText(route.nodes)}」`, "info", { label: "撤销", run: () => setForm(snapshot) });
     },
-    [form, notify],
+    [form, index, notify],
   );
 
   const confirmDelete = useCallback(async () => {
@@ -304,6 +312,11 @@ export function App() {
     <Box className="tt-shell">
       <TopBar
         user={me.user}
+        active={tab}
+        isAdmin={me.isAdmin}
+        onChangeTab={setTab}
+        onOpenAccount={() => setTab("account")}
+        onOpenAdmin={() => setTab("admin")}
         onOpenPassword={() => setPasswordOpen(true)}
         onExport={handleExport}
         onLogout={handleLogout}
@@ -311,22 +324,17 @@ export function App() {
 
       <Box
         sx={{
-          display: "flex",
-          gap: { xs: 0, md: 3 },
           flex: 1,
           width: "100%",
           maxWidth: 1240,
           mx: "auto",
           px: 2,
           pt: 2,
-          alignItems: "flex-start",
         }}
       >
-        <NavTabs active={tab} onChange={setTab} />
-
-        <Box component="main" className="tt-main" sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <Box component="main" className="tt-main" sx={{ display: "flex", flexDirection: "column" }}>
           <Typography variant="h2" component="h2" className="tt-sr-only">
-            {TAB_TITLES[tab]}
+            {tabTitle(tab)}
           </Typography>
 
           <Box sx={{ flex: 1 }}>
@@ -339,10 +347,11 @@ export function App() {
                 tripsLoading={tripsState === "loading"}
                 busy={busy}
                 onSave={handleSave}
+                onInvalid={(message) => notify(message, "error")}
                 onQuickRoute={handleQuickRoute}
                 onClear={handleClear}
                 onLoadTrip={(trip) => {
-                  setForm(tripToForm(trip));
+                  setForm(tripToForm(trip, index));
                   notify("已载入表单，修改后点保存");
                 }}
                 onDeleteTrip={setPendingDelete}
@@ -368,7 +377,7 @@ export function App() {
                   <RecordsView
                     trips={trips}
                     onEdit={(trip) => {
-                      setForm(tripToForm(trip));
+                      setForm(tripToForm(trip, index));
                       setTab("entry");
                       notify("已载入表单，修改后点保存");
                     }}
@@ -404,10 +413,31 @@ export function App() {
                 <ImportView onImport={handleImport} notify={notify} existing={existingKeys} />
               </Suspense>
             ) : null}
+
+            {tab === "account" ? (
+              <Suspense fallback={<ViewSkeleton />}>
+                <AccountView
+                  user={me.user}
+                  notify={notify}
+                  onOpenPassword={() => setPasswordOpen(true)}
+                  onUserChanged={(user) => setMe((current) => (current ? { ...current, user } : current))}
+                />
+              </Suspense>
+            ) : null}
+
+            {tab === "admin" ? (
+              <Suspense fallback={<ViewSkeleton />}>
+                <AdminView
+                  currentUserId={me.user.id}
+                  notify={notify}
+                  onSessionInvalid={() => setMe((current) => (current ? { ...current, user: null } : current))}
+                />
+              </Suspense>
+            ) : null}
           </Box>
 
           <Typography variant="caption" className="tt-footer" sx={{ color: "text.secondary", pt: 3 }}>
-            途迹 TripTrace v{appVersion} · 数据存于你的 Cloudflare 账号（Workers + D1 + KV）
+            途迹 TripTrace v{appVersion}
           </Typography>
         </Box>
       </Box>

@@ -7,7 +7,7 @@
 
 ## 1. 目标与形态
 
-记录每日出差行程：**节点链（家 → 圣润 → 天九 → …）+ 分段里程（可选）+ 总里程**，并按日/月/年汇总。核心要求：日期默认今天可改、节点可自由输入、分段可不填只填总里程、历史路线自动提示以减少输入、数据持久化按账号隔离、登录态长期有效、**移动端为主桌面端可用**。
+记录每日出差行程：**节点链（家 → 圣润 → 天九 → …）+ 分段里程（每段必填，默认带出历史值）**，并按日/月/年汇总。核心要求：日期默认今天可改、节点可自由输入、总里程由分段合计得出、历史分段与反方向里程自动带出以减少输入、数据持久化按账号隔离、登录态长期有效、**移动端为主桌面端可用**。
 
 ## 2. 部署拓扑：单 Worker（静态资源 + API）
 
@@ -75,8 +75,17 @@ bun run dev:web                        # Vite HMR（5173，代理 /api → 8787�
 | PUT | `/api/trips/:id` | 是 | 修改（校验归属），返回更新后的 `{trip}` |
 | DELETE | `/api/trips/:id` | 是 | 删除（校验归属） |
 | POST | `/api/trips/bulk` | 是 | 批量导入（≤500 条），按 `日期+节点链` 去重（总里程不参与，避免同链不同里程重复入库） |
+| PATCH | `/api/me` | 是 | 改显示名（trim 后 1..24 字符），返回 `{user}` |
+| GET | `/api/me/sessions` | 是 | 当前用户的登录设备（会话）列表，含 `current` 标记 |
+| DELETE | `/api/me/sessions/:id` | 是 | 登出指定设备（仅限自己的会话，否则 404） |
+| GET | `/api/admin/users` | 管理员 | 用户列表：行程数 / 合计里程 / 会话数 / 最近活跃 / 禁用状态 |
+| PATCH | `/api/admin/users/:id` | 管理员 | 启用/禁用（禁用会立即清空该用户全部会话）；禁止操作自己 |
+| POST | `/api/admin/users/:id/password` | 管理员 | 重置密码（≥8 位）并强制其全部设备重新登录 |
+| DELETE | `/api/admin/users/:id` | 管理员 | 删除用户，级联清理其行程、会话与 KV 会话键；禁止删除自己 |
 
-中间件链：`securityHeaders` →（`/api/*`）`attachDb` → 路由；受保护路由逐条挂 `...authedHandlers`（`requireSession` + `refreshSessionCookie`）。写操作另做 CSRF 防护：`Sec-Fetch-Site: cross-site` 直接拒绝；带 `Origin` 时要求与请求主机一致，或命中 `ALLOWED_ORIGINS` 白名单（本地开发/分域部署用）。路径存在但方法不匹配时返回 404 JSON（Hono `notFound`）。
+中间件链：`securityHeaders` →（`/api/*`）`attachDb` → 路由；受保护路由逐条挂 `...authedHandlers`（`requireSession` + `refreshSessionCookie`），管理员接口再挂 `requireAdmin`。写操作另做 CSRF 防护：`Sec-Fetch-Site: cross-site` 直接拒绝；带 `Origin` 时要求与请求主机一致，或命中 `ALLOWED_ORIGINS` 白名单（本地开发/分域部署用）。路径存在但方法不匹配时返回 404 JSON（Hono `notFound`）。
+
+管理员与禁用：管理员由 `vars.ADMIN_USERNAMES`（逗号分隔、大小写不敏感，当前为 `zerobiubiu`）指定，`/api/me` 返回 `isAdmin` 供前端决定是否显示「管理」入口，服务端对 `/api/admin/*` 一律校验（403 `forbidden`）。`users.disabled_at` 非空即：拒绝登录（403 `disabled`）→ 会话在 D1 命中但用户已禁用/不存在时删会话并 401（含 KV 键）→ 禁用、重置密码、删除都会即时清空该用户的会话（D1 + KV 前缀 `s:<userId>:`）。
 
 ## 6. 鉴权与会话
 
@@ -101,18 +110,21 @@ apps/web/src/
 ├── lib/draft.ts              # 草稿持久化（localStorage，按用户隔离；登录与启动两条路径恢复）
 ├── lib/tripList.ts           # 本地列表更新
 ├── lib/version.ts            # 构建期注入的版本号
-├── components/               # TopBar / NavTabs / Toasts / PasswordDialog（全部 MUI 组件）
-└── views/                    # AuthScreen / EntryView / RecordsView / StatsView / ImportView（Records/Stats/Import 懒加载）
+├── components/               # TopBar（品牌 + 四个分组导航 + 账号菜单）/ Toasts / PasswordDialog（全部 MUI）
+├── views/                    # AuthScreen / EntryView / RecordsView / StatsView / ImportView / AccountView / AdminView（后三者为懒加载）
+└── app.css                   # 仅全局基线与安全区，其余全部走 MUI
 ```
 
-建议引擎（登录后一次性拉取行程数组，`buildIndex` 建索引）：节点名按次数 + 最近使用排序（前缀优先）；分段里程取同方向最常用值，无同方向时用反方向并标注「反向」；节点链完全一致时提示「历史路线」（可一键沿用并自动补齐空白分段）；总里程默认按分段自动合计，手改后转手动并提示差额。
+导航：四个分组（填报 / 记录 / 汇总 / 导入）内联在标题栏（移动端与桌面端同形态）；账号自助与管理员后台从标题栏的账号菜单进入。日期选择统一用 `@mui/x-date-pickers`（dayjs 适配器 + 中文文案）。
+
+建议引擎（登录后一次性拉取行程数组，`buildIndex` 建索引）：节点名按次数 + 最近使用排序（前缀优先）；分段里程**默认值**取同方向最常用值，没有同方向时**按反方向推断**（同一条路往返里程相同，界面不区分方向），已有手填值不覆盖；节点链完全一致时整链一键沿用（`withChainApplied`，按历史补齐分段）。总里程恒为分段合计（`formTotalKm`），任一段为空即拒绝保存（`formKmIssues` 区分「空白」与「不合规」）。
 
 ### 响应式布局（移动优先）
 
 | 断点 | 布局 |
 | --- | --- |
-| 默认（手机） | 单列；顶部工具栏 + **底部固定导航**（4 项，安全区适配）；触摸目标 ≥ 44px |
-| ≥ 900px | 左侧竖排导航 + 内容区；卡片密度提高 |
+| 默认（手机） | 单列；**标题栏内含品牌 + 四个分组**；填报页底部固定保存条（含安全区适配）；触摸目标 ≥ 44px |
+| ≥ 900px | 内容居中（maxWidth 1240）；卡片密度提高；保存按钮回到表单内 |
 | ≥ 1180px | 填报/导入双栏；汇总两列（年度汇总跨列） |
 
 CSP 由 `apps/web/public/_headers` 下发（`default-src 'none'`；`script-src 'self'` 另放行 Cloudflare Insights 信标；`style-src 'self' 'unsafe-inline'` 是 MUI/emotion **运行时注入样式**的必要代价——静态托管无法按请求下发 nonce，应用也无用户可控 HTML；`connect-src 'self' https://cloudflareinsights.com`），因此前端不能使用内联脚本。注意 `_headers` **不支持注释行**，写注释会让整份规则解析失败（可在 `wrangler dev` 上验证头部实际生效）。Worker 对 `/api/*` 的响应再补一次同源安全头，其 `style-src` 保持严格（API 不承载文档）。
@@ -141,7 +153,7 @@ bun run db:migrate:local|remote
 
 ## 9. 已知限制与设计取舍
 
-- 前端产物：主包 458 kB（gzip 141 kB，含 React + MUI）；记录/汇总/导入视图已按需懒加载分块（3.7 / 9.2 / 18.7 kB）。
+- 前端产物：主包 635 kB（gzip ≈ 196 kB，含 React + MUI + `@mui/x-date-pickers`）；记录/汇总/导入视图按需懒加载分块。
 - 设计系统为 MUI v9 + emotion（0.3.0 起）：前端文档的 CSP 必须放行 `style-src 'unsafe-inline'`；`vite preview` 不解析 `_headers`，头部与 CSP 只能在 `wrangler dev` 或生产上验证。
 - 行程列表一次性拉全量（个人量级：数年数百条）；数据量到数千条以上需要加范围查询与分页。
 - 无密码找回：以管理员身份在 D1 侧重置（见 troubleshooting/0001）。

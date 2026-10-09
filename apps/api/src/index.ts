@@ -9,6 +9,7 @@
 import { Hono } from "hono";
 import { attachDb, securityHeaders, type AppEnv } from "./lib/context";
 import { applySecurityHeaders, HttpError } from "./lib/http";
+import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 import { tripRoutes } from "./routes/trips";
 
@@ -18,6 +19,7 @@ app.use("*", securityHeaders);
 app.use("/api/*", attachDb);
 app.route("/api", authRoutes);
 app.route("/api", tripRoutes);
+app.route("/api", adminRoutes);
 
 app.notFound((c) => {
   // 只有 /api 前缀会进入 Worker（其余交给静态资源），因此这里只可能是接口 404
