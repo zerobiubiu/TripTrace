@@ -1,6 +1,6 @@
 # 0024 部署 0.11.5、GitHub 开源（MIT）与推送自动部署接线
 
-- **状态**：部分完成——部署与开源已执行并验证；**推送自动部署（Cloudflare Workers Builds）待用户在仪表盘授权 GitHub App 后收尾**
+- **状态**：**已完成**——部署、GitHub 开源、推送自动部署三者均已执行并端到端验证（CI 构建 + 部署成功）
 - **版本**：0.11.5（部署已上线；本轮未改代码，故版本不再递增）
 - **日期**：2026-10-10
 - **影响范围**：线上部署、`zerobiubiu/TripTrace`（新公开仓库）、`.gitignore`、新增 `LICENSE` 与根 `README.md`
@@ -28,7 +28,7 @@
 
 `apps/api/wrangler.jsonc` 里的自定义域、D1/KV 绑定 id 与 `ADMIN_USERNAMES` 会随仓库公开——分别是作者自己的域与账号资源，**README 已提醒自建部署前替换**。
 
-## 三、推送自动部署（Cloudflare Workers Builds）⏳ 待一次授权
+## 三、推送自动部署（Cloudflare Workers Builds）✅ 已打通
 
 用户选择走 **Cloudflare 原生 Workers Builds**，且**不开分支/PR 预览**（只在 `master` 上构建与发布）。
 
@@ -71,6 +71,10 @@
 | 2 | `Success: Build command completed`（前端构建成功，入口 `index-C6l9U9HCD`-类产物 641.19 kB 与本地一致）→ `/usr/bin/bash: line 1: wrangler: command not found` → `Exited with code 127` | **`wrangler` 从来不是本仓库的依赖**：本机一直靠全局安装才能跑，CI 里没有——照 README 克隆的人同样无法部署 | 钉成 `@triptrace/api` 的 devDependency（`wrangler@^4.148.0`）并 `bun install` 更新锁文件 |
 
 第 2 条是**CI 才暴露出来的真实仓库缺陷**（隐藏的全局依赖），按「依赖必须落在仓库里」修掉——这也是开源自建者能用起来的前提。
+
+**结果 ✅（端到端打通）**：第三次构建（提交 `c8562cc`，2026-10-09T19:04:28Z 起）全绿——`Detected ... bun@1.4.2` → `Success: Build command completed` → `wrangler deploy` 成功（`Current Version ID: 6a199359-7475-49e9-8ce3-385db8143f81`）→ `Success: Deploy command completed` → `✨ Success! Build completed.`；部署记录 `bbc338fd-e7fd-403f-b9f4-165a9dc102bf`（source `wrangler`，100% 流量）。线上冒烟：`/api/me` → `0.11.5`，首页入口 chunk `index-C6lU9HCD.js` 与 CI 构建产物一致。
+
+**从此以后：任何 push 到 `master` → Workers Builds 自动构建（`bun install && bun run build:web`）并部署（`bun --filter @triptrace/api deploy`）到 `triptrace`（含自定义域 `trips.zerobiubiu.top`）。**
 
 ## 执行验证记录
 
