@@ -10,11 +10,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
-import EditOutlined from "@mui/icons-material/EditOutlined";
 import { PillGroup } from "../components/PillGroup";
 import { RangeControl } from "../components/RangeControl";
-import { chainText, formatDateLabel, formatKm, formatMonthLabel, weekdayLabel } from "../lib/format";
+import { TripCard } from "../components/TripCard";
+import { formatDateLabel, formatKm, formatMonthLabel, weekdayLabel } from "../lib/format";
 import {
   filterTrips,
   hasConditions,
@@ -106,68 +105,9 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete }:
       constraints: filter.constraints.filter((item) => !(item.kind === kind && item.key === key)),
     });
 
-  const renderTrip = (trip: Trip) => {
-    const missingKm = trip.totalKm === null || trip.totalKm === undefined;
-    const legsWithKm = (trip.legs ?? []).filter((leg) => leg.km !== null && leg.km !== undefined);
-    return (
-      <Card component="article" variant="outlined" key={trip.id}>
-        <CardContent>
-          <Stack spacing={1}>
-            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-              {chainText(trip.nodes)}
-            </Typography>
-
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.75 }}
-            >
-              {/* 总公里数是「读数」：用墨色数字（与汇总页的读数同一套写法），不用胶囊——蓝色只留给可操作与选中；
-                  只有真的缺里程时才用琥珀这个状态色，并直接把状态写出来 */}
-              <Typography
-                variant="body1"
-                sx={{
-                  fontWeight: 650,
-                  fontVariantNumeric: "tabular-nums",
-                  color: missingKm ? "warning.main" : "text.primary",
-                }}
-              >
-                {missingKm ? "未填里程" : `${formatKm(trip.totalKm)} 公里`}
-              </Typography>
-              {trip.source === "import" ? <Chip size="small" color="default" label="导入" /> : null}
-              {trip.note ? (
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  {trip.note}
-                </Typography>
-              ) : null}
-              <Button
-                size="small"
-                sx={{ ml: "auto" }}
-                startIcon={<EditOutlined fontSize="small" />}
-                onClick={() => onEdit(trip)}
-              >
-                编辑
-              </Button>
-              <Button
-                size="small"
-                color="error"
-                startIcon={<DeleteOutlined fontSize="small" />}
-                onClick={() => onDelete(trip)}
-              >
-                删除
-              </Button>
-            </Stack>
-
-            {legsWithKm.length > 0 ? (
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                {legsWithKm.map((leg) => `${leg.from} → ${leg.to} ${formatKm(leg.km)}`).join(" · ")}
-              </Typography>
-            ) : null}
-          </Stack>
-        </CardContent>
-      </Card>
-    );
-  };
+  const renderTrip = (trip: Trip) => (
+    <TripCard trip={trip} onEdit={onEdit} onDelete={onDelete} />
+  );
 
   const renderDayHeading = (date: string, trailing?: string) => (
     <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5, mb: 0.75 }}>

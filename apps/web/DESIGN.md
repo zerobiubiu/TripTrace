@@ -246,6 +246,11 @@ components:
 - **Error:** 描边与 helperText 转 `error`，文案指出现状与后果（「必填」「还有 1 段里程没填」）。
 - **日期字段（只读显示）：** 日期只选不敲（`readOnly` + 整块可点打开选择器），字段宽度贴合日期（约 132px）、日期在框内**居中**、等宽数字；不使用右侧图标按钮——装饰性图标在这种「显示型」字段里是冗余，位置让给读数本身。
 
+### 行程卡（Signature Component · 两种密度）
+- **Only one implementation:** `components/TripCard.tsx` 是行程条目的唯一实现，填报页「当日记录」（`variant="compact"`）与记录页列表（`variant="full"`）共用它——**不要再在视图里另写一份**（0.9.3 之前两处各写一份，结果改了一处漏了一处）。
+- **Shape:** `full` = 纸白卡片（`radius.content`）+ `body1` 标题 + 末行分段明细；`compact` = 1px 描边块（`radius.control`）+ `body2` 标题，不带分段明细。两者的行距、按钮、读数写法完全一致——**差异只在密度，不在语言**。
+- **Readings:** 里程用同一文件导出的原子 `MileageReading`：墨色 + 650 + 等宽数字，缺里程时改琥珀文字「未填里程」。**读数不是胶囊**（The Reading-Not-Pill Rule）；「导入」是标记（tag），仍用胶囊。
+
 ### 路线节点编辑区（可改名 + 拖动排序）
 - **Shape:** 每个节点一行：`拖动手柄` + `站号` + `行内输入框` + `移除`；行底色软色块（`action.hover`）、圆角 14px、行内 8px 内边距，行间 8px。站号是等宽数字的次要读数（`text.secondary`），输入框占满剩余宽度（长中文节点名不截断）。
 - **Drag:** 拖动**只挂在手柄上**（dnd-kit 的 listeners 只给手柄那个 IconButton）——点进输入框改名永远不会误触发拖动；手柄用 `@mui/icons-material` 的拖动手柄图标，`cursor: grab/grabbing`，触屏 `touch-action: none`（否则一拖页面就跟着滚）。拖动中：原行降到 40% 透明、其余行自动让位（放置位置反馈），被拿起的那一行以**浮层**跟随手指（纸白底 + 主色描边 + `elevation 8`——只有真的浮在内容之上的层才用阴影）。

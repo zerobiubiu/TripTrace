@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
   IconButton,
   Paper,
   Skeleton,
@@ -20,6 +19,7 @@ import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
 import { DateField } from "../components/DateField";
 import { NodeEditor } from "../components/NodeEditor";
+import { TripCard } from "../components/TripCard";
 import { radius } from "../theme";
 import {
   createEntryForm,
@@ -368,26 +368,13 @@ export function EntryView({
             ) : (
               <Stack spacing={1}>
                 {dayTrips.map((trip) => (
-                  <Stack
+                  <TripCard
                     key={trip.id}
-                    spacing={0.5}
-                    sx={{ p: 1.25, border: 1, borderColor: "divider", borderRadius: radius.control }}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {chainText(trip.nodes)}
-                    </Typography>
-                    <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}>
-                      <Chip size="small" color={trip.totalKm === null ? "warning" : "primary"} label={formatKmText(trip.totalKm)} />
-                      {trip.source === "import" ? <Chip size="small" label="导入" /> : null}
-                      <Box sx={{ flex: 1 }} />
-                      <Button size="small" onClick={() => onLoadTrip(trip)}>
-                        编辑
-                      </Button>
-                      <Button size="small" color="error" onClick={() => onDeleteTrip(trip)}>
-                        删除
-                      </Button>
-                    </Stack>
-                  </Stack>
+                    trip={trip}
+                    variant="compact"
+                    onEdit={onLoadTrip}
+                    onDelete={onDeleteTrip}
+                  />
                 ))}
               </Stack>
             )}

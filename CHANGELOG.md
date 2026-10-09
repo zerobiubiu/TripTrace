@@ -3,6 +3,16 @@
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。项目版本以根 `package.json` 为唯一事实来源，
 `apps/api/wrangler.jsonc` 的 `vars.APP_VERSION` 由 `bun run check` 门禁校验一致性；前端版本由 Vite 注入。
 
+## 0.9.3
+
+行程卡抽成共用组件——**同一处显示模式只保留一份实现**。
+
+- 新增 `components/TripCard.tsx`：`TripCard`（`variant: "full" | "compact"`）是行程条目的唯一实现，填报页「当日记录」（`compact`）与记录页列表（`full`）共用；同文件导出里程读数原子 `MileageReading`（墨色 + 650 + 等宽数字，缺里程用琥珀文字）。
+- 修复 0.9.2 漏掉的一处：填报页「当日记录」的里程胶囊同步改为读数写法（此前两处各写一份 JSX，改了一处漏了一处）。
+- 顺带消除一项既有漂移：`compact` 现在也显示备注（此前只有记录页显示）。
+- 规则上锁：`AGENTS.md` 增「行程条目只有 TripCard 一处实现，视图里不得再内联写一份；同一模式出现在两处时先抽组件再改」；`DESIGN.md` 增「行程卡（Signature Component · 两种密度）」。
+- 文档：`docs/changes/0015`、`docs/architecture/0001`（components 清单）。
+
 ## 0.9.2
 
 记录页的总公里数不再用胶囊（`/impeccable quieter`）。

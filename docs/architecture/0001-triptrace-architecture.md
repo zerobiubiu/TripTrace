@@ -111,7 +111,7 @@ apps/web/src/
 ├── lib/draft.ts              # 草稿持久化（localStorage，按用户隔离；登录与启动两条路径恢复）
 ├── lib/tripList.ts           # 本地列表更新
 ├── lib/version.ts            # 构建期注入的版本号
-├── components/               # TopBar（品牌 + 四个分组导航 + 账号菜单）/ Toasts / PasswordDialog / DateField / PillGroup / RangeControl / NodeEditor（全部 MUI）
+├── components/               # TopBar（品牌 + 四个分组导航 + 账号菜单）/ Toasts / PasswordDialog / DateField / PillGroup / RangeControl / NodeEditor / TripCard（两页共用的行程卡 + MileageReading 读数原子）（全部 MUI）
 ├── views/                    # AuthScreen / EntryView / RecordsView / StatsView / ImportView / AccountView / AdminView（后三者为懒加载）
 └── app.css                   # 仅全局基线与安全区，其余全部走 MUI
 ```
