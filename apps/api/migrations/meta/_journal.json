@@ -15,6 +15,13 @@
       "when": 1791510452422,
       "tag": "20261009014732_charming_madripoor",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791528670422,
+      "tag": "20261009065110_odd_klaw",
+      "breakpoints": true
     }
   ]
 }

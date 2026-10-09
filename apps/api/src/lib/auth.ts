@@ -31,6 +31,8 @@ export interface SessionUser {
   id: string;
   username: string;
   displayName: string;
+  /** 头像版本（ISO 时间）；null 表示用显示名首字生成的默认头像。 */
+  avatarUpdatedAt: string | null;
 }
 
 export interface PasswordHash {
@@ -189,7 +191,7 @@ export async function createSession(
   });
   await env.SESSIONS.put(
     sessionCacheKey(user.id, tokenHash),
-    JSON.stringify({ u: user.username, n: user.displayName, sid: sessionId }),
+    JSON.stringify({ u: user.username, n: user.displayName, sid: sessionId, a: user.avatarUpdatedAt ?? null }),
     { expirationTtl: SESSION_CACHE_TTL_SEC },
   );
   return sessionCookieValue(user.id, token);
@@ -205,10 +207,15 @@ export async function resolveSession(
 
   const tokenHash = await sha256Hex(parsed.token);
   const cacheKey = sessionCacheKey(parsed.userId, tokenHash);
-  const cached = await env.SESSIONS.get<{ u: string; n: string; sid: string }>(cacheKey, "json");
+  const cached = await env.SESSIONS.get<{ u: string; n: string; sid: string; a?: string | null }>(cacheKey, "json");
   if (cached) {
     return {
-      user: { id: parsed.userId, username: cached.u, displayName: cached.n },
+      user: {
+        id: parsed.userId,
+        username: cached.u,
+        displayName: cached.n,
+        avatarUpdatedAt: cached.a ?? null,
+      },
       sessionId: cached.sid,
       rolledCookie: false,
     };
@@ -225,7 +232,7 @@ export async function resolveSession(
 
   await env.SESSIONS.put(
     cacheKey,
-    JSON.stringify({ u: row.user.username, n: row.user.displayName, sid: row.id }),
+    JSON.stringify({ u: row.user.username, n: row.user.displayName, sid: row.id, a: row.user.avatarUpdatedAt ?? null }),
     { expirationTtl: SESSION_CACHE_TTL_SEC },
   );
 
@@ -241,7 +248,12 @@ export async function resolveSession(
   }
 
   return {
-    user: { id: row.user.id, username: row.user.username, displayName: row.user.displayName },
+    user: {
+      id: row.user.id,
+      username: row.user.username,
+      displayName: row.user.displayName,
+      avatarUpdatedAt: row.user.avatarUpdatedAt ?? null,
+    },
     sessionId: row.id,
     rolledCookie,
   };

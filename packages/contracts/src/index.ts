@@ -38,6 +38,12 @@ export interface UserDto {
   id: string;
   username: string;
   displayName: string;
+  /**
+   * 头像版本（ISO 时间）：非空表示设置了自定义头像。
+   * 图片本身不在 JSON 里（1000px 的图约几百 KB），客户端按 `avatarUpdatedAt` 拼
+   * `/api/me/avatar?v=<avatarUpdatedAt>` 取图并利用浏览器缓存，换图即 URL 变化。
+   */
+  avatarUpdatedAt: string | null;
 }
 
 export interface MeResponse {
@@ -138,4 +144,9 @@ export interface ImportParseResult {
   notes: string[];
 }
 
-export type TabKey = "entry" | "records" | "stats" | "import" | "account" | "admin";
+export type TabKey = "entry" | "records" | "account" | "admin";
+
+/** 头像上传请求体（data URL；服务端校验类型与解压后体积）。 */
+export interface AvatarPayload {
+  dataUrl: string;
+}

@@ -87,6 +87,44 @@ export function withLegValue(form: EntryForm, legIndex: number, value: string): 
   return { ...form, legs };
 }
 
+/**
+ * 把节点 `from` 移到 `to`（0-based 节点下标）——拖动排序与键盘换位共用。
+ *
+ * 里程规则（brief 里确认过）：**仍相邻的端点对**保留原有里程（`from→to` 键，同名重复节点以首次出现为准）；
+ * 不再相邻的手填值丢弃，空白段由历史默认值补齐（含反向推断）。
+ */
+export function withNodesReordered(
+  form: EntryForm,
+  from: number,
+  to: number,
+  index: SuggestIndex | null,
+): EntryForm {
+  const count = form.nodes.length;
+  if (count < 2 || from < 0 || from >= count || to < 0 || to >= count || from === to) return form;
+
+  const nodes = [...form.nodes];
+  const [moved] = nodes.splice(from, 1);
+  if (moved === undefined) return form;
+  nodes.splice(to, 0, moved);
+
+  const kept = new Map<string, string>();
+  for (let i = 0; i < form.legs.length; i += 1) {
+    const legFrom = form.nodes[i] ?? "";
+    const legTo = form.nodes[i + 1] ?? "";
+    const value = (form.legs[i] ?? "").trim();
+    if (!legFrom || !legTo || !value) continue;
+    const key = `${legFrom}\u0000${legTo}`;
+    if (!kept.has(key)) kept.set(key, value);
+  }
+
+  const legs = nodes.slice(0, -1).map((legFrom, i) => {
+    const legTo = nodes[i + 1] ?? "";
+    return kept.get(`${legFrom}\u0000${legTo}`) ?? "";
+  });
+
+  return withLegDefaults({ ...form, nodes, legs }, index, false);
+}
+
 /** 整条链替换（常用路线 / 历史链填入）：分段按历史补齐（force 时覆盖）。 */
 export function withChainApplied(
   form: EntryForm,

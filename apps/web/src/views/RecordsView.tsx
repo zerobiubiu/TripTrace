@@ -1,12 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+/**
+ * 「记录」页（0.7.0 起记录与汇总合并为一个查询区）：
+ * ① 单日筛查——StaticDatePicker 常显日历（可收起），只选一天，带「回到今天」；
+ * ② 当天明细——只显示选中那天的行程（卡片：链、里程、来源、分段、编辑/删除）；
+ * ③ 独立汇总区——原「汇总」内容（年度汇总 / 月度分布 / 高频路段，带自己的年份选择）折叠保留。
+ */
+
+import { useMemo, useState } from "react";
 import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
-import { chainText, formatDateLabel, formatKm, formatMonthLabel, weekdayLabel } from "../lib/format";
+import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
+import dayjs from "dayjs";
+import { chainText, formatDateLabel, formatKm, todayIso, weekdayLabel } from "../lib/format";
 import type { Trip } from "../types";
-
-/** 首屏只渲染最新的 60 条，避免上百条行程一次全部挂载。 */
-const PAGE_SIZE = 60;
+import { StatsView } from "./StatsView";
 
 interface RecordsViewProps {
   trips: Trip[];
@@ -14,173 +21,197 @@ interface RecordsViewProps {
   onDelete: (trip: Trip) => void;
 }
 
-interface DayGroup {
-  date: string;
-  trips: Trip[];
-}
+/** 与填报页同口径：MUI X 弹层里的 overline / 星期标签默认小于 14px，这里抬到下限。 */
+const PICKER_TEXT_SX = {
+  "& .MuiTypography-overline": { fontSize: "0.875rem" },
+  "& .MuiDayCalendar-weekDayLabel": { fontSize: "0.875rem" },
+} as const;
 
-interface MonthGroup {
-  monthKey: string;
-  km: number;
-  tripCount: number;
-  days: DayGroup[];
-}
-
-function groupTrips(trips: Trip[]): MonthGroup[] {
-  const months = new Map<string, { km: number; tripCount: number; days: Map<string, Trip[]> }>();
-
-  for (const trip of trips) {
-    const monthKey = trip.date.slice(0, 7);
-    const bucket = months.get(monthKey) ?? { km: 0, tripCount: 0, days: new Map<string, Trip[]>() };
-    if (trip.totalKm !== null && trip.totalKm !== undefined) bucket.km += trip.totalKm;
-    bucket.tripCount += 1;
-    const dayTrips = bucket.days.get(trip.date) ?? [];
-    dayTrips.push(trip);
-    bucket.days.set(trip.date, dayTrips);
-    months.set(monthKey, bucket);
-  }
-
-  // 月份与日期的顺序都由前端按 `YYYY-MM` / `YYYY-MM-DD` 降序决定，不依赖后端的 ORDER BY
-  return [...months.entries()]
-    .sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0))
-    .map(([monthKey, bucket]) => ({
-      monthKey,
-      km: Math.round(bucket.km * 100) / 100,
-      tripCount: bucket.tripCount,
-      days: [...bucket.days.entries()]
-        .sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0))
-        .map(([date, dayTrips]) => ({ date, trips: dayTrips })),
-    }));
+/** 可折叠区块的标题行：标题 + 摘要 + 展开/收起（aria-expanded/controls 齐全）。 */
+function SectionHeader({
+  title,
+  meta,
+  open,
+  controls,
+  onToggle,
+}: {
+  title: string;
+  meta?: string;
+  open: boolean;
+  controls: string;
+  onToggle: () => void;
+}) {
+  return (
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>
+      <Typography variant="h3" component="h3">
+        {title}
+      </Typography>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center", minWidth: 0 }}>
+        {meta ? (
+          <Typography variant="caption" sx={{ color: "text.secondary", textAlign: "right" }}>
+            {meta}
+          </Typography>
+        ) : null}
+        <Button
+          size="small"
+          variant="outlined"
+          sx={{ minHeight: 44, flex: "0 0 auto" }}
+          aria-expanded={open}
+          aria-controls={controls}
+          onClick={onToggle}
+        >
+          {open ? "收起" : "展开"}
+        </Button>
+      </Stack>
+    </Stack>
+  );
 }
 
 export function RecordsView({ trips, onEdit, onDelete }: RecordsViewProps) {
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [selectedDate, setSelectedDate] = useState(() => todayIso());
+  const [calendarOpen, setCalendarOpen] = useState(true);
+  const [statsOpen, setStatsOpen] = useState(false);
 
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [trips]);
-
-  // 分页口径是「最新的 60 条」：先按日期降序（同日保持接口原始顺序），再截取
-  const ordered = useMemo(
-    () => [...trips].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
-    [trips],
+  const dayTrips = useMemo(
+    () =>
+      trips
+        .filter((trip) => trip.date === selectedDate)
+        .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0)),
+    [trips, selectedDate],
   );
-  const months = useMemo(() => groupTrips(ordered.slice(0, visibleCount)), [ordered, visibleCount]);
-  const hasMore = visibleCount < ordered.length;
-
-  if (trips.length === 0) {
-    return <Alert severity="info">还没有行程记录，去「填报」添加第一条吧。</Alert>;
-  }
+  const dayKm = useMemo(
+    () => Math.round(dayTrips.reduce((sum, trip) => sum + (trip.totalKm ?? 0), 0) * 100) / 100,
+    [dayTrips],
+  );
+  const dayMissing = dayTrips.filter((trip) => trip.totalKm === null || trip.totalKm === undefined).length;
 
   return (
     <Stack spacing={1.5}>
-      {months.map((month) => (
-        <Box component="section" key={month.monthKey}>
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ alignItems: "baseline", justifyContent: "space-between", mb: 1 }}
-          >
-            <Typography variant="h3" component="h3">
-              {formatMonthLabel(month.monthKey)}
-            </Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {month.tripCount} 条 · {formatKm(month.km)} 公里
-            </Typography>
-          </Stack>
+      <Card variant="outlined">
+        <CardContent>
+          <SectionHeader
+            title="按日期查看"
+            meta={`${formatDateLabel(selectedDate)} ${weekdayLabel(selectedDate)}`}
+            open={calendarOpen}
+            controls="records-calendar"
+            onToggle={() => setCalendarOpen((current) => !current)}
+          />
+          {calendarOpen ? (
+            <Box
+              id="records-calendar"
+              sx={{ mt: 1, ...PICKER_TEXT_SX, "& .MuiDateCalendar-root": { width: "100%", maxWidth: 360, mx: "auto" } }}
+            >
+              <StaticDatePicker
+                value={dayjs(selectedDate)}
+                onChange={(value) => {
+                  if (value?.isValid()) setSelectedDate(value.format("YYYY-MM-DD"));
+                }}
+                // 静态日历即筛即用，不需要「确认/取消」动作条
+                slotProps={{ actionBar: { actions: [] } }}
+              />
+              <Button
+                fullWidth
+                sx={{ minHeight: 44 }}
+                disabled={selectedDate === todayIso()}
+                onClick={() => setSelectedDate(todayIso())}
+              >
+                回到今天
+              </Button>
+            </Box>
+          ) : null}
+        </CardContent>
+      </Card>
 
-          <Stack spacing={1.5}>
-            {month.days.map((day) => {
-              const dayKm = Math.round(day.trips.reduce((sum, trip) => sum + (trip.totalKm ?? 0), 0) * 100) / 100;
+      <Card variant="outlined">
+        <CardContent>
+          <Typography variant="h3" component="h3" sx={{ mb: 1 }}>
+            {formatDateLabel(selectedDate)} 的记录
+          </Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
+            {dayTrips.length === 0
+              ? "这一天还没有记录"
+              : `已录 ${dayTrips.length} 条 · 合计 ${formatKm(dayKm)} 公里${dayMissing > 0 ? ` · ${dayMissing} 条未填里程` : ""}`}
+          </Typography>
+
+          <Stack spacing={1}>
+            {dayTrips.map((trip) => {
+              const missingKm = trip.totalKm === null || trip.totalKm === undefined;
+              const legsWithKm = (trip.legs ?? []).filter((leg) => leg.km !== null && leg.km !== undefined);
               return (
-                <Box key={day.date}>
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5, mb: 0.75 }}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {formatDateLabel(day.date)}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                      {weekdayLabel(day.date)}
-                    </Typography>
-                    <Chip size="small" label={`${formatKm(dayKm)} 公里`} sx={{ ml: "auto" }} />
-                  </Stack>
+                <Card component="article" key={trip.id} variant="outlined">
+                  <CardContent>
+                    <Stack spacing={1}>
+                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                        {chainText(trip.nodes)}
+                      </Typography>
 
-                  <Stack spacing={1}>
-                    {day.trips.map((trip) => {
-                      const missingKm = trip.totalKm === null || trip.totalKm === undefined;
-                      const legsWithKm = (trip.legs ?? []).filter((leg) => leg.km !== null && leg.km !== undefined);
-                      return (
-                        <Card component="article" key={trip.id} variant="outlined">
-                          <CardContent>
-                            <Stack spacing={1}>
-                              <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                {chainText(trip.nodes)}
-                              </Typography>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.75 }}>
+                        <Chip
+                          size="small"
+                          color={missingKm ? "warning" : "primary"}
+                          label={missingKm ? "未填里程" : `${formatKm(trip.totalKm)} 公里`}
+                        />
+                        {trip.source === "import" ? <Chip size="small" color="default" label="导入" /> : null}
+                        {trip.note ? (
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                            {trip.note}
+                          </Typography>
+                        ) : null}
+                        <Button
+                          size="small"
+                          sx={{ ml: "auto", minHeight: 44 }}
+                          startIcon={<EditOutlined fontSize="small" />}
+                          aria-label={`编辑 ${chainText(trip.nodes)}`}
+                          onClick={() => onEdit(trip)}
+                        >
+                          编辑
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          sx={{ minHeight: 44 }}
+                          startIcon={<DeleteOutlined fontSize="small" />}
+                          aria-label={`删除 ${chainText(trip.nodes)}`}
+                          onClick={() => onDelete(trip)}
+                        >
+                          删除
+                        </Button>
+                      </Stack>
 
-                              <Stack
-                                direction="row"
-                                spacing={1}
-                                sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.75 }}
-                              >
-                                <Chip
-                                  size="small"
-                                  color={missingKm ? "warning" : "primary"}
-                                  label={missingKm ? "未填里程" : `${formatKm(trip.totalKm)} 公里`}
-                                />
-                                {trip.source === "import" ? (
-                                  <Chip size="small" color="default" label="导入" />
-                                ) : null}
-                                {trip.note ? (
-                                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                    {trip.note}
-                                  </Typography>
-                                ) : null}
-                                <Button
-                                  size="small"
-                                  sx={{ ml: "auto" }}
-                                  startIcon={<EditOutlined fontSize="small" />}
-                                  onClick={() => onEdit(trip)}
-                                >
-                                  编辑
-                                </Button>
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  startIcon={<DeleteOutlined fontSize="small" />}
-                                  onClick={() => onDelete(trip)}
-                                >
-                                  删除
-                                </Button>
-                              </Stack>
-
-                              {legsWithKm.length > 0 ? (
-                                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                  {legsWithKm
-                                    .map((leg) => `${leg.from} → ${leg.to} ${formatKm(leg.km)}`)
-                                    .join(" · ")}
-                                </Typography>
-                              ) : null}
-                            </Stack>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </Stack>
-                </Box>
+                      {legsWithKm.length > 0 ? (
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                          {legsWithKm.map((leg) => `${leg.from} → ${leg.to} ${formatKm(leg.km)}`).join(" · ")}
+                        </Typography>
+                      ) : null}
+                    </Stack>
+                  </CardContent>
+                </Card>
               );
             })}
           </Stack>
-        </Box>
-      ))}
+        </CardContent>
+      </Card>
 
-      {hasMore ? (
-        <Button variant="outlined" fullWidth onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
-          显示更早的 60 条
-        </Button>
-      ) : null}
+      <Card variant="outlined">
+        <CardContent>
+          <SectionHeader
+            title="汇总"
+            meta={trips.length === 0 ? "还没有数据" : `共 ${trips.length} 条记录`}
+            open={statsOpen}
+            controls="records-stats"
+            onToggle={() => setStatsOpen((current) => !current)}
+          />
+          {statsOpen ? (
+            <Box id="records-stats" sx={{ mt: 1.5 }}>
+              <StatsView trips={trips} />
+            </Box>
+          ) : (
+            <Alert severity="info" sx={{ mt: 1.5 }}>
+              展开可看年度汇总、月度分布与高频路段
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
     </Stack>
   );
 }

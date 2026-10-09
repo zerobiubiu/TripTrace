@@ -25,10 +25,8 @@ import type { MeResponse, TabKey, ToastMessage, Trip, TripPayload, User } from "
 import { AuthScreen } from "./views/AuthScreen";
 import { EntryView } from "./views/EntryView";
 
-// 记录/汇总/导入按需加载：首屏只承担填报路径（PRODUCT.md 的体积约束）
+// 记录/账号/管理按需加载：首屏只承担填报路径（PRODUCT.md 的体积约束）
 const RecordsView = lazy(() => import("./views/RecordsView").then((m) => ({ default: m.RecordsView })));
-const StatsView = lazy(() => import("./views/StatsView").then((m) => ({ default: m.StatsView })));
-const ImportView = lazy(() => import("./views/ImportView").then((m) => ({ default: m.ImportView })));
 const AccountView = lazy(() => import("./views/AccountView").then((m) => ({ default: m.AccountView })));
 const AdminView = lazy(() => import("./views/AdminView").then((m) => ({ default: m.AdminView })));
 
@@ -355,6 +353,9 @@ export function App() {
                   notify("已载入表单，修改后点保存");
                 }}
                 onDeleteTrip={setPendingDelete}
+                onImport={handleImport}
+                existing={existingKeys}
+                notify={notify}
               />
             ) : null}
 
@@ -384,33 +385,6 @@ export function App() {
                     onDelete={setPendingDelete}
                   />
                 )}
-              </Suspense>
-            ) : null}
-
-            {tab === "stats" ? (
-              <Suspense fallback={<ViewSkeleton />}>
-                {tripsState === "loading" ? (
-                  <ViewSkeleton />
-                ) : tripsState === "error" ? (
-                  <Alert
-                    severity="error"
-                    action={
-                      <Button color="inherit" size="small" onClick={() => void loadTrips()}>
-                        重试
-                      </Button>
-                    }
-                  >
-                    汇总暂时读不到，请检查网络后重试。
-                  </Alert>
-                ) : (
-                  <StatsView trips={trips} />
-                )}
-              </Suspense>
-            ) : null}
-
-            {tab === "import" ? (
-              <Suspense fallback={<ViewSkeleton />}>
-                <ImportView onImport={handleImport} notify={notify} existing={existingKeys} />
               </Suspense>
             ) : null}
 

@@ -12,12 +12,12 @@ import { hashPassword, iterationsFromEnv, validatePassword } from "../lib/auth";
 import { authedHandlers, clearUserSessionCache, requireAdmin, type AppEnv } from "../lib/context";
 import { assertSameOrigin, HttpError, readJsonBody } from "../lib/http";
 import * as store from "../lib/store";
-import type { UserRow } from "../db/schema";
+import type { UserSummary } from "../lib/store";
 
 export const adminRoutes = new Hono<AppEnv>();
 
 /** 取目标用户；指向自己 → 400（管理员不能禁用/删除自己），不存在 → 404。 */
-async function loadTargetUser(c: Context<AppEnv>, targetId: string): Promise<UserRow> {
+async function loadTargetUser(c: Context<AppEnv>, targetId: string): Promise<UserSummary> {
   if (targetId === c.get("user").id) {
     throw new HttpError(400, "self_forbidden", "不能对自己执行该操作");
   }

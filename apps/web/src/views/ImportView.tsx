@@ -25,7 +25,7 @@ interface ImportViewProps {
   existing: Set<string>;
 }
 
-export function ImportView({ onImport, notify, existing }: ImportViewProps) {
+export function ImportSection({ onImport, notify, existing }: ImportViewProps) {
   const [text, setText] = useState("");
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [entries, setEntries] = useState<ImportEntry[] | null>(null);
