@@ -14,6 +14,7 @@ import {
 import { api, isNetworkFailure, isUnauthorized } from "./api";
 import { PasswordDialog } from "./components/PasswordDialog";
 import { Toasts } from "./components/Toasts";
+import { ViewErrorBoundary } from "./components/ViewErrorBoundary";
 import { TAB_ITEMS, TopBar } from "./components/TopBar";
 import { clearDraft, draftSummary, draftToForm, loadDraft, saveDraft } from "./lib/draft";
 import { createEntryForm, formKmIssues, formToPayload, tripToForm, withChainApplied, type EntryForm } from "./lib/entry";
@@ -65,6 +66,8 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Trip | null>(null);
+  // 视图错误边界的重挂载键：出错点「重试」时 +1，连同重新拉数据一起复位
+  const [viewKey, setViewKey] = useState(0);
   const toastSeq = useRef(0);
 
   const index = useMemo(() => buildIndex(trips), [trips]);
@@ -100,6 +103,12 @@ export function App() {
       }
     }
   }, [notify]);
+
+  /** 视图渲染出错后的重试：重挂载视图，并重新拉一次记录（数据侧的问题也一起复位）。 */
+  const handleViewRetry = useCallback(() => {
+    setViewKey((key) => key + 1);
+    void loadTrips();
+  }, [loadTrips]);
 
   // 草稿恢复：新登录与「刷新/被系统回收后重开」两条路径都要恢复，否则空表单会立刻把草稿清掉
   const restoreDraft = useCallback(
@@ -343,7 +352,7 @@ export function App() {
             {tabTitle(tab)}
           </Typography>
 
-          <Box sx={{ flex: 1 }}>
+          <ViewErrorBoundary key={`${tab}-${viewKey}`} onRetry={handleViewRetry} sx={{ flex: 1 }}>
             {tab === "entry" ? (
               <EntryView
                 form={form}
@@ -449,7 +458,7 @@ export function App() {
                 />
               </Suspense>
             ) : null}
-          </Box>
+          </ViewErrorBoundary>
 
           <Typography variant="caption" className="tt-footer" sx={{ color: "text.secondary", pt: 3 }}>
             途迹 TripTrace v{appVersion}

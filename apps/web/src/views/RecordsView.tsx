@@ -106,7 +106,7 @@ export function RecordsView({ trips, filter, onFilterChange, onEdit, onDelete }:
     });
 
   const renderTrip = (trip: Trip) => (
-    <TripCard trip={trip} onEdit={onEdit} onDelete={onDelete} />
+    <TripCard key={trip.id} trip={trip} onEdit={onEdit} onDelete={onDelete} />
   );
 
   const renderDayHeading = (date: string, trailing?: string) => (

@@ -29,7 +29,8 @@ export function parseKmInput(text: string): number | null {
  * 留空 = value null / invalid false（表示暂不填）；非法 = invalid true（要就地报错，不能静默丢弃）。
  */
 export function kmState(text: string): { value: number | null; invalid: boolean } {
-  const raw = text.trim();
+  // 界面上的读数现在带千位分隔（12,345.5），用户可能直接复制回来：逗号与空白都容忍
+  const raw = text.trim().replace(/[,\uFF0C\s]/g, "");
   if (!raw) return { value: null, invalid: false };
   const value = Number(raw);
   if (!Number.isFinite(value) || value < 0 || value > 100000) return { value: null, invalid: true };
@@ -42,21 +43,24 @@ export function formatKmText(value: number | null | undefined): string {
   return `${formatKm(value)} 公里`;
 }
 
+/** 千位分隔 + 最多两位小数（尾随零自动去掉）：里程读数是给人扫的，五位数不分隔容易读错。 */
+const kmFormatter = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+
 export function formatKm(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "—";
-  const rounded = Math.round(value * 100) / 100;
-  return Number.isInteger(rounded) ? String(rounded) : String(rounded).replace(/0+$/, "").replace(/\.$/, "");
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return kmFormatter.format(value);
 }
 
-export function normalizeName(raw: string): string {
-  return raw.replace(/\s+/g, " ").trim();
+export function normalizeName(raw: string | null | undefined): string {
+  return typeof raw === "string" ? raw.replace(/\s+/g, " ").trim() : "";
 }
 
 export function chainText(nodes: string[], separator = " → "): string {
   return nodes.map(normalizeName).filter(Boolean).join(separator);
 }
 
-export function formatDateLabel(date: string): string {
+export function formatDateLabel(date: string | null | undefined): string {
+  if (typeof date !== "string") return "";
   const parts = date.split("-");
   if (parts.length !== 3) return date;
   return `${parts[0]}年${Number.parseInt(parts[1] ?? "0", 10)}月${Number.parseInt(parts[2] ?? "0", 10)}日`;

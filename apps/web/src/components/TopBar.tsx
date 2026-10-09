@@ -81,7 +81,9 @@ export function TopBar({
         </Typography>
 
         <Tabs
-          value={active}
+          // 「账号 / 管理」不在分组导航里（由账号菜单进入）：此时不能把一个不存在的 value 交给 Tabs，
+          // 否则 MUI 会在控制台报 "None of the Tabs' children match"，看着像功能出错。
+          value={TAB_ITEMS.some((item) => item.key === active) ? active : false}
           onChange={(_event, value: TabKey) => onChangeTab(value)}
           variant="scrollable"
           scrollButtons={false}
